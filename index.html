@@ -102,7 +102,8 @@ input:focus{border-color:var(--gold)}
 <div id="v-home" class="card hide">
 <p id="h-hi" class="hi"></p>
 <span id="h-role" class="role"></span>
-<p class="sub" style="margin-bottom:16px">تم تسجيل الدخول بنجاح. الشاشة الرئيسية قادمة في المرحلة التالية.</p>
+<p class="sub" style="margin-bottom:10px">تم تسجيل الدخول بنجاح. الشاشة الرئيسية قادمة في المرحلة التالية.</p>
+<p id="h-exp" class="sub" style="font-size:12px;margin-bottom:16px"></p>
 <button class="btn line" onclick="doLogout()">تسجيل الخروج</button>
 </div>
 
@@ -113,8 +114,11 @@ var tg=window.Telegram&&window.Telegram.WebApp;
 var inTg=!!(tg&&tg.initData);
 if(inTg){tg.ready();tg.expand();}
 var FN="https://zxqrmaeikptepwnwfjnx.supabase.co/functions/v1/";
+var SB="https://zxqrmaeikptepwnwfjnx.supabase.co";
+var ANON="sb_publishable_43tDH1_qpK50o-8YNqwwPA_sHZpft7-";
 var IDLE_MS=14*24*3600*1000;
 var pend=null;
+var refreshing=null;
 function applyTheme(){
 var t="dark";
 if(inTg&&tg.colorScheme){t=tg.colorScheme;}
@@ -187,14 +191,56 @@ if(!t||!s){return null;}
 if(Date.now()-Number(t)>IDLE_MS){clearSession();return null;}
 try{return JSON.parse(s);}catch(e){clearSession();return null;}
 }
+function expSec(s){
+var e=Number(s&&s.expires_at)||0;
+if(e>1000000000000){e=Math.floor(e/1000);}
+return e;
+}
+function refreshNow(sess){
+if(refreshing){return refreshing;}
+refreshing=(async function(){
+try{
+var r=await fetch(SB+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{"Content-Type":"application/json","apikey":ANON},body:JSON.stringify({refresh_token:sess.s.refresh_token})});
+var j={};
+try{j=await r.json();}catch(e){}
+if(r.status===200&&j.access_token&&j.refresh_token){
+var ns={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||(Math.floor(Date.now()/1000)+(j.expires_in||3600))};
+sess.s=ns;
+ls("ledger_session",JSON.stringify(sess));
+return {state:"ok",sess:sess};
+}
+if(r.status===400||r.status===401||r.status===403){return {state:"invalid"};}
+return {state:"error"};
+}catch(e){
+return {state:"error"};
+}finally{
+refreshing=null;
+}
+})();
+return refreshing;
+}
+async function getToken(){
+var sess=getSession();
+if(!sess||!sess.s||!sess.s.refresh_token){return {state:"none"};}
+if(expSec(sess.s)-Math.floor(Date.now()/1000)>60){return {state:"ok",sess:sess};}
+return refreshNow(sess);
+}
+function updateExp(warn){
+var el=document.getElementById("h-exp");
+var s=getSession();
+if(!s||!s.s){el.textContent="";return;}
+var t=new Date(expSec(s.s)*1000).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+el.textContent=warn?("تعذّر تجديد الجلسة الآن. المفتاح الحالي ينتهي "+t):("المفتاح الحالي ينتهي الساعة "+t);
+}
 function show(id){
 ["v-login","v-invite","v-rcode","v-recover","v-home"].forEach(function(v){document.getElementById(v).classList.add("hide");});
 document.getElementById(id).classList.remove("hide");
 }
-function showHome(s){
+function showHome(s,warn){
 document.getElementById("h-hi").textContent="مرحباً، "+s.u;
 document.getElementById("h-role").textContent=s.role==="admin"?"مسؤول":"مستخدم";
 ls("ledger_active",String(Date.now()));
+updateExp(warn);
 show("v-home");
 }
 function doLogout(){
@@ -322,8 +368,28 @@ var c=val("r-code");
 if(!u||!c){msg("r-msg","أدخل اسم المستخدم ورمز الاسترجاع");return;}
 msg("r-msg","الاسترجاع سيُفعَّل في مرحلة لاحقة.",true);
 }
+function sessionExpired(){
+clearSession();
+show("v-login");
+msg("l-msg","انتهت الجلسة. سجّل الدخول من جديد.");
+}
+async function startup(){
 var sess=getSession();
-if(sess&&inTg){showHome(sess);}
+if(!sess||!inTg){return;}
+document.getElementById("v-login").classList.add("hide");
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){sessionExpired();return;}
+if(r.state==="ok"){showHome(r.sess);return;}
+showHome(sess,true);
+}
+startup();
+document.addEventListener("visibilitychange",async function(){
+if(document.hidden||!inTg){return;}
+if(document.getElementById("v-home").classList.contains("hide")){return;}
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){sessionExpired();return;}
+updateExp(r.state==="error");
+});
 </script>
 </body>
 </html>
