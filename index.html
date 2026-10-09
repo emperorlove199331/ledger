@@ -25,6 +25,8 @@ input:focus{border-color:var(--gold)}
 .eye{position:absolute;right:8px;bottom:6px;height:36px;padding:0 10px;border:0;background:transparent;color:var(--muted);font-size:13px;cursor:pointer}
 .btn{width:100%;height:50px;border:0;border-radius:14px;background:var(--gold);color:#1A1400;font-size:17px;font-weight:700;cursor:pointer;margin-top:4px}
 .btn:active{opacity:.85}
+.btn:disabled{opacity:.5}
+.btn.line{background:transparent;border:1px solid var(--border);color:var(--text);font-weight:600}
 .links{display:flex;justify-content:space-between;margin-top:16px;font-size:14px}
 .links a{color:var(--gold);cursor:pointer}
 .msg{min-height:20px;font-size:13px;margin:0 0 10px;color:var(--err)}
@@ -33,6 +35,8 @@ input:focus{border-color:var(--gold)}
 .hide{display:none}
 .out{text-align:center}
 .out a{display:inline-block;margin-top:16px;color:#1A1400;background:var(--gold);padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:700}
+.hi{font-size:20px;margin:0 0 6px}
+.role{display:inline-block;font-size:12px;color:var(--gold);border:1px solid var(--gold);border-radius:20px;padding:2px 10px;margin-bottom:14px}
 </style>
 </head>
 <body>
@@ -56,7 +60,7 @@ input:focus{border-color:var(--gold)}
 <div class="f"><label>اسم المستخدم</label><input id="l-user" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
 <div class="f"><label>كلمة السر</label><input id="l-pass" type="password" autocomplete="current-password"><button class="eye" onclick="eye('l-pass',this)">إظهار</button></div>
 <p id="l-msg" class="msg"></p>
-<button class="btn" onclick="doLogin()">دخول</button>
+<button id="l-btn" class="btn" onclick="doLogin()">دخول</button>
 <div class="links"><a onclick="show('v-invite')">لدي دعوة</a><a onclick="show('v-recover')">نسيت كلمة السر</a></div>
 </div>
 
@@ -81,12 +85,21 @@ input:focus{border-color:var(--gold)}
 <div class="links"><a onclick="show('v-login')">رجوع لتسجيل الدخول</a></div>
 </div>
 
+<div id="v-home" class="card hide">
+<p id="h-hi" class="hi"></p>
+<span id="h-role" class="role"></span>
+<p class="sub" style="margin-bottom:16px">تم تسجيل الدخول بنجاح. الشاشة الرئيسية قادمة في المرحلة التالية.</p>
+<button class="btn line" onclick="doLogout()">تسجيل الخروج</button>
+</div>
+
 </div>
 </div>
 <script>
 var tg=window.Telegram&&window.Telegram.WebApp;
 var inTg=!!(tg&&tg.initData);
 if(inTg){tg.ready();tg.expand();}
+var FN="https://zxqrmaeikptepwnwfjnx.supabase.co/functions/v1/";
+var IDLE_MS=14*24*3600*1000;
 function applyTheme(){
 var t="dark";
 if(inTg&&tg.colorScheme){t=tg.colorScheme;}
@@ -96,9 +109,73 @@ document.documentElement.setAttribute("data-theme",t);
 applyTheme();
 if(inTg&&tg.onEvent){tg.onEvent("themeChanged",applyTheme);}
 document.getElementById(inTg?"app":"outside").classList.remove("hide");
+function ls(k,v){
+try{
+if(v===undefined){return localStorage.getItem(k);}
+if(v===null){localStorage.removeItem(k);}
+else{localStorage.setItem(k,v);}
+}catch(e){}
+return null;
+}
+function deviceId(){
+var d=ls("ledger_device");
+if(d&&d.length>=16){return d;}
+var a=new Uint8Array(16);
+crypto.getRandomValues(a);
+d="dev-";
+for(var i=0;i<a.length;i++){d+=("0"+a[i].toString(16)).slice(-2);}
+ls("ledger_device",d);
+return d;
+}
+async function callFn(names,body){
+var r=null;
+for(var i=0;i<names.length;i++){
+r=await fetch(FN+names[i],{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+if(r.status!==404){break;}
+}
+var j={};
+try{j=await r.json();}catch(e){}
+return {status:r.status,data:j};
+}
+function errText(s,d){
+var e=d&&d.error;
+if(e==="invalid_credentials"){return "اسم المستخدم أو كلمة السر غير صحيحة";}
+if(e==="locked"){
+var m=Math.ceil((d.retry_after_seconds||900)/60);
+return "تم قفل الدخول مؤقتاً. حاول بعد "+m+" دقيقة";
+}
+if(e==="account_inactive"){return "الحساب موقوف أو منتهي. تواصل مع المسؤول";}
+if(e==="device_limit"){return "وصلت للحد الأقصى من الأجهزة. تواصل مع المسؤول لمسح أجهزتك";}
+return "حدث خطأ غير متوقع ("+s+")";
+}
+function saveSession(d){
+ls("ledger_session",JSON.stringify({u:d.username,role:d.role,s:d.session}));
+ls("ledger_active",String(Date.now()));
+}
+function clearSession(){
+ls("ledger_session",null);
+ls("ledger_active",null);
+}
+function getSession(){
+var t=ls("ledger_active");
+var s=ls("ledger_session");
+if(!t||!s){return null;}
+if(Date.now()-Number(t)>IDLE_MS){clearSession();return null;}
+try{return JSON.parse(s);}catch(e){clearSession();return null;}
+}
 function show(id){
-["v-login","v-invite","v-recover"].forEach(function(v){document.getElementById(v).classList.add("hide");});
+["v-login","v-invite","v-recover","v-home"].forEach(function(v){document.getElementById(v).classList.add("hide");});
 document.getElementById(id).classList.remove("hide");
+}
+function showHome(s){
+document.getElementById("h-hi").textContent="مرحباً، "+s.u;
+document.getElementById("h-role").textContent=s.role==="admin"?"مسؤول":"مستخدم";
+ls("ledger_active",String(Date.now()));
+show("v-home");
+}
+function doLogout(){
+clearSession();
+show("v-login");
 }
 function eye(id,b){
 var i=document.getElementById(id);
@@ -111,11 +188,28 @@ m.textContent=t;
 m.className=ok?"msg ok":"msg";
 }
 function val(id){return document.getElementById(id).value.trim();}
-function doLogin(){
+async function doLogin(){
 var u=val("l-user").toLowerCase();
 var p=document.getElementById("l-pass").value;
 if(!u||!p){msg("l-msg","أدخل اسم المستخدم وكلمة السر");return;}
-msg("l-msg","الحقول سليمة. ربط الدخول بالخادم في المرحلة القادمة.",true);
+var b=document.getElementById("l-btn");
+b.disabled=true;
+msg("l-msg","جارٍ التحقق...",true);
+try{
+var r=await callFn(["Login","login"],{username:u,password:p,device_id:deviceId()});
+var d=r.data||{};
+if(r.status===200&&d.ok&&d.session){
+saveSession(d);
+document.getElementById("l-pass").value="";
+msg("l-msg","");
+showHome({u:d.username,role:d.role});
+}else{
+msg("l-msg",errText(r.status,d));
+}
+}catch(e){
+msg("l-msg","تعذّر الاتصال بالخادم. تحقق من الإنترنت وحاول مرة أخرى.");
+}
+b.disabled=false;
 }
 function doInvite(){
 var c=val("i-code");
@@ -134,6 +228,8 @@ var c=val("r-code");
 if(!u||!c){msg("r-msg","أدخل اسم المستخدم ورمز الاسترجاع");return;}
 msg("r-msg","الاسترجاع سيُفعَّل في مرحلة لاحقة.",true);
 }
+var sess=getSession();
+if(sess&&inTg){showHome(sess);}
 </script>
 </body>
 </html>
