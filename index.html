@@ -2,18 +2,137 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>دفتر الكاشيرات</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#111;color:#d4af37;font-family:sans-serif;text-align:center}
-h1{font-size:28px;margin:0 0 8px}
-p{color:#999;margin:0}
+:root{--bg:#0E0E10;--card:#1A1A1D;--text:#F2EEE3;--muted:#9A9486;--gold:#D4AF37;--border:#2A2A2E;--field:#121214;--err:#E5736B}
+[data-theme="light"]{--bg:#F6F3EC;--card:#FFFFFF;--text:#1A1A1A;--muted:#6B6558;--gold:#B8921F;--border:#E6DFCC;--field:#FBF9F4;--err:#C0392B}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}
+.wrap{width:100%;max-width:400px}
+.brand{text-align:center;margin-bottom:22px}
+.logo{width:60px;height:60px;border-radius:18px;background:var(--gold);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;box-shadow:0 8px 24px rgba(212,175,55,.25)}
+h1{font-size:24px;margin:0 0 4px;color:var(--gold)}
+.sub{color:var(--muted);font-size:14px;margin:0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.card h2{font-size:18px;margin:0 0 16px}
+label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px}
+.f{margin-bottom:14px;position:relative}
+input{width:100%;height:48px;border-radius:12px;border:1px solid var(--border);background:var(--field);color:var(--text);font-size:16px;padding:0 14px;outline:none;direction:ltr;text-align:left}
+input:focus{border-color:var(--gold)}
+.eye{position:absolute;left:8px;bottom:6px;height:36px;padding:0 10px;border:0;background:transparent;color:var(--muted);font-size:13px;cursor:pointer}
+.btn{width:100%;height:50px;border:0;border-radius:14px;background:var(--gold);color:#1A1400;font-size:17px;font-weight:700;cursor:pointer;margin-top:4px}
+.btn:active{opacity:.85}
+.links{display:flex;justify-content:space-between;margin-top:16px;font-size:14px}
+.links a{color:var(--gold);cursor:pointer}
+.msg{min-height:20px;font-size:13px;margin:0 0 10px;color:var(--err)}
+.msg.ok{color:var(--gold)}
+.hint{font-size:12px;color:var(--muted);margin:-8px 0 14px}
+.hide{display:none}
+.out{text-align:center}
+.out a{display:inline-block;margin-top:16px;color:#1A1400;background:var(--gold);padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:700}
 </style>
 </head>
 <body>
-<div>
+<div class="wrap">
+<div class="brand">
+<div class="logo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1A1400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/><path d="M9 8h6"/></svg></div>
 <h1>دفتر الكاشيرات</h1>
-<p>قريباً</p>
+<p class="sub">حساباتك بدقة وأمان</p>
 </div>
+
+<div id="outside" class="card out hide">
+<h2>افتح الدفتر من تلغرام</h2>
+<p class="sub">هذا الدفتر يعمل داخل تلغرام فقط. افتح البوت واضغط زر فتح الدفتر.</p>
+<a href="https://t.me/wael_ledger_bot">فتح البوت</a>
+</div>
+
+<div id="app" class="hide">
+
+<div id="v-login" class="card">
+<h2>تسجيل الدخول</h2>
+<div class="f"><label>اسم المستخدم</label><input id="l-user" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
+<div class="f"><label>كلمة السر</label><input id="l-pass" type="password" autocomplete="current-password"><button class="eye" onclick="eye('l-pass',this)">إظهار</button></div>
+<p id="l-msg" class="msg"></p>
+<button class="btn" onclick="doLogin()">دخول</button>
+<div class="links"><a onclick="show('v-invite')">لدي دعوة</a><a onclick="show('v-recover')">نسيت كلمة السر</a></div>
+</div>
+
+<div id="v-invite" class="card hide">
+<h2>حساب جديد بدعوة</h2>
+<div class="f"><label>رمز الدعوة</label><input id="i-code" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" style="text-transform:uppercase"></div>
+<div class="f"><label>اختر اسم مستخدم</label><input id="i-user" autocapitalize="none" spellcheck="false"></div>
+<p class="hint">3 إلى 20 حرفاً إنجليزياً صغيراً أو أرقاماً أو _</p>
+<div class="f"><label>كلمة السر</label><input id="i-pass" type="password" autocomplete="new-password"><button class="eye" onclick="eye('i-pass',this)">إظهار</button></div>
+<div class="f"><label>تأكيد كلمة السر</label><input id="i-pass2" type="password" autocomplete="new-password"></div>
+<p id="i-msg" class="msg"></p>
+<button class="btn" onclick="doInvite()">إنشاء الحساب</button>
+<div class="links"><a onclick="show('v-login')">رجوع لتسجيل الدخول</a></div>
+</div>
+
+<div id="v-recover" class="card hide">
+<h2>استرجاع الحساب</h2>
+<div class="f"><label>اسم المستخدم</label><input id="r-user" autocapitalize="none" spellcheck="false"></div>
+<div class="f"><label>رمز الاسترجاع</label><input id="r-code" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase"></div>
+<p id="r-msg" class="msg"></p>
+<button class="btn" onclick="doRecover()">متابعة</button>
+<div class="links"><a onclick="show('v-login')">رجوع لتسجيل الدخول</a></div>
+</div>
+
+</div>
+</div>
+<script>
+var tg=window.Telegram&&window.Telegram.WebApp;
+var inTg=!!(tg&&tg.initData);
+if(inTg){tg.ready();tg.expand();}
+function applyTheme(){
+var t="dark";
+if(inTg&&tg.colorScheme){t=tg.colorScheme;}
+else if(window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches){t="light";}
+document.documentElement.setAttribute("data-theme",t);
+}
+applyTheme();
+if(inTg&&tg.onEvent){tg.onEvent("themeChanged",applyTheme);}
+document.getElementById(inTg?"app":"outside").classList.remove("hide");
+function show(id){
+["v-login","v-invite","v-recover"].forEach(function(v){document.getElementById(v).classList.add("hide");});
+document.getElementById(id).classList.remove("hide");
+}
+function eye(id,b){
+var i=document.getElementById(id);
+if(i.type==="password"){i.type="text";b.textContent="إخفاء";}
+else{i.type="password";b.textContent="إظهار";}
+}
+function msg(id,t,ok){
+var m=document.getElementById(id);
+m.textContent=t;
+m.className=ok?"msg ok":"msg";
+}
+function val(id){return document.getElementById(id).value.trim();}
+function doLogin(){
+var u=val("l-user").toLowerCase();
+var p=document.getElementById("l-pass").value;
+if(!u||!p){msg("l-msg","أدخل اسم المستخدم وكلمة السر");return;}
+msg("l-msg","الحقول سليمة. ربط الدخول بالخادم في المرحلة القادمة.",true);
+}
+function doInvite(){
+var c=val("i-code");
+var u=val("i-user");
+var p=document.getElementById("i-pass").value;
+var p2=document.getElementById("i-pass2").value;
+if(!c){msg("i-msg","أدخل رمز الدعوة");return;}
+if(!/^[a-z0-9_]{3,20}$/.test(u)){msg("i-msg","اسم المستخدم غير صالح");return;}
+if(p.length<8||p.length>72){msg("i-msg","كلمة السر من 8 إلى 72 خانة");return;}
+if(p!==p2){msg("i-msg","كلمتا السر غير متطابقتين");return;}
+msg("i-msg","الحقول سليمة. ربط التسجيل بالخادم في المرحلة القادمة.",true);
+}
+function doRecover(){
+var u=val("r-user");
+var c=val("r-code");
+if(!u||!c){msg("r-msg","أدخل اسم المستخدم ورمز الاسترجاع");return;}
+msg("r-msg","الاسترجاع سيُفعَّل في مرحلة لاحقة.",true);
+}
+</script>
 </body>
 </html>
