@@ -31,28 +31,51 @@ if(Array.isArray(v)) return '['+v.map(stable).join(',')+']';
 if(v&&typeof v==='object') return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+stable(v[k])).join(',')+'}';
 return JSON.stringify(v);
 }
+function findHolder(o,d){
+if(!o||typeof o!=='object'||d>5) return null;
+if(o.access_token&&o.refresh_token) return o;
+for(const k of Object.keys(o)){
+const r=findHolder(o[k],d+1);
+if(r) return r;
+}
+return null;
+}
+let FOUND=null;
 function readSession(){
-const raw=localStorage.getItem('ledger_session');
-if(!raw) return null;
+const keys=[];
+for(let i=0;i<localStorage.length;i++) keys.push(localStorage.key(i));
+keys.sort((a,b)=>(a==='ledger_session'?-1:0)-(b==='ledger_session'?-1:0));
+for(const k of keys){
 let o;
-try{o=JSON.parse(raw);}catch(e){return null;}
-const s=(o&&o.session)?o.session:o;
-if(s&&s.access_token&&s.refresh_token) return s;
+try{o=JSON.parse(localStorage.getItem(k));}catch(e){continue;}
+const h=findHolder(o,0);
+if(h){FOUND={key:k,root:o,holder:h};return h;}
+}
+log('عدد المفاتيح المحفوظة: '+keys.length);
+keys.forEach(k=>{
+const v=localStorage.getItem(k)||'';
+let desc='نص طوله '+v.length;
+try{
+const o=JSON.parse(v);
+if(o&&typeof o==='object') desc='حقول: '+Object.keys(o).join(',');
+}catch(e){}
+log('- '+k+' : '+desc);
+});
 return null;
 }
 function saveBack(ns){
+if(!FOUND) return;
 try{
-const o=JSON.parse(localStorage.getItem('ledger_session'));
-const t=(o.session&&o.session.access_token)?o.session:o;
-t.access_token=ns.access_token;
-t.refresh_token=ns.refresh_token;
-t.expires_at=ns.expires_at;
-localStorage.setItem('ledger_session',JSON.stringify(o));
+FOUND.holder.access_token=ns.access_token;
+FOUND.holder.refresh_token=ns.refresh_token;
+FOUND.holder.expires_at=ns.expires_at;
+localStorage.setItem(FOUND.key,JSON.stringify(FOUND.root));
 }catch(e){}
 }
 async function auth(){
 const s=readSession();
-if(!s){log('لا توجد جلسة محفوظة. افتح الصفحة من داخل تلغرام بعد تسجيل الدخول.');return null;}
+if(!s){log('لم أجد جلسة محفوظة. أرسل لي الأسطر أعلاه.');return null;}
+log('وجدت الجلسة في المفتاح: '+FOUND.key);
 const r=await sb.auth.setSession({access_token:s.access_token,refresh_token:s.refresh_token});
 if(r.error||!r.data||!r.data.session){log('فشل استعادة الجلسة: '+(r.error?r.error.message:'غير معروف'));return null;}
 saveBack(r.data.session);
