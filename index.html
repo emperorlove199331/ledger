@@ -25,7 +25,7 @@ input:focus{border-color:var(--gold)}
 .eye{position:absolute;right:8px;bottom:6px;height:36px;padding:0 10px;border:0;background:transparent;color:var(--muted);font-size:13px;cursor:pointer}
 .btn{width:100%;height:50px;border:0;border-radius:14px;background:var(--gold);color:#1A1400;font-size:17px;font-weight:700;cursor:pointer;margin-top:4px}
 .btn:active{opacity:.85}
-.btn:disabled{opacity:.5}
+.btn:disabled{opacity:.4}
 .btn.line{background:transparent;border:1px solid var(--border);color:var(--text);font-weight:600}
 .links{display:flex;justify-content:space-between;margin-top:16px;font-size:14px}
 .links a{color:var(--gold);cursor:pointer}
@@ -37,6 +37,10 @@ input:focus{border-color:var(--gold)}
 .out a{display:inline-block;margin-top:16px;color:#1A1400;background:var(--gold);padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:700}
 .hi{font-size:20px;margin:0 0 6px}
 .role{display:inline-block;font-size:12px;color:var(--gold);border:1px solid var(--gold);border-radius:20px;padding:2px 10px;margin-bottom:14px}
+.code{direction:ltr;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:20px;letter-spacing:1px;padding:16px 8px;border:1px dashed var(--gold);border-radius:14px;color:var(--gold);background:var(--field);margin:0 0 12px;user-select:all;-webkit-user-select:all;word-break:break-all}
+.warn{font-size:13px;color:var(--err);margin:0 0 12px;line-height:1.7}
+.chk{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:14px;cursor:pointer}
+.chk input{width:22px;height:22px;padding:0;flex:none;accent-color:var(--gold)}
 </style>
 </head>
 <body>
@@ -72,8 +76,18 @@ input:focus{border-color:var(--gold)}
 <div class="f"><label>كلمة السر</label><input id="i-pass" type="password" autocomplete="new-password"><button class="eye" onclick="eye('i-pass',this)">إظهار</button></div>
 <div class="f"><label>تأكيد كلمة السر</label><input id="i-pass2" type="password" autocomplete="new-password"></div>
 <p id="i-msg" class="msg"></p>
-<button class="btn" onclick="doInvite()">إنشاء الحساب</button>
+<button id="i-btn" class="btn" onclick="doInvite()">إنشاء الحساب</button>
 <div class="links"><a onclick="show('v-login')">رجوع لتسجيل الدخول</a></div>
+</div>
+
+<div id="v-rcode" class="card hide">
+<h2>رمز الاسترجاع</h2>
+<p class="warn">هذا الرمز يُعرض لك مرة واحدة فقط ولا يمكن عرضه مرة ثانية. احفظه في مكان آمن خارج التطبيق. ستحتاجه إذا نسيت كلمة السر.</p>
+<div id="rc-code" class="code"></div>
+<button class="btn line" onclick="copyCode()">نسخ الرمز</button>
+<p id="rc-msg" class="msg" style="margin-top:10px"></p>
+<label class="chk"><input id="rc-chk" type="checkbox" onchange="onChk()"><span>حفظت الرمز في مكان آمن</span></label>
+<button id="rc-btn" class="btn" onclick="finishInvite()" disabled>متابعة</button>
 </div>
 
 <div id="v-recover" class="card hide">
@@ -100,6 +114,7 @@ var inTg=!!(tg&&tg.initData);
 if(inTg){tg.ready();tg.expand();}
 var FN="https://zxqrmaeikptepwnwfjnx.supabase.co/functions/v1/";
 var IDLE_MS=14*24*3600*1000;
+var pend=null;
 function applyTheme(){
 var t="dark";
 if(inTg&&tg.colorScheme){t=tg.colorScheme;}
@@ -148,6 +163,15 @@ if(e==="account_inactive"){return "الحساب موقوف أو منتهي. تو
 if(e==="device_limit"){return "وصلت للحد الأقصى من الأجهزة. تواصل مع المسؤول لمسح أجهزتك";}
 return "حدث خطأ غير متوقع ("+s+")";
 }
+function inviteErr(s,d){
+var e=d&&d.error;
+if(e==="invalid_invite"){return "رمز الدعوة غير صالح أو منتهي أو مستخدم";}
+if(e==="bad_username"){return "اسم المستخدم غير صالح";}
+if(e==="bad_password"){return "كلمة السر غير مقبولة (من 8 إلى 72 خانة)";}
+if(e==="username_taken"){return "اسم المستخدم مأخوذ، اختر اسماً آخر";}
+if(e==="failed"){return "تعذّر إنشاء الحساب، حاول مرة أخرى";}
+return "حدث خطأ غير متوقع ("+s+")";
+}
 function saveSession(d){
 ls("ledger_session",JSON.stringify({u:d.username,role:d.role,s:d.session}));
 ls("ledger_active",String(Date.now()));
@@ -164,7 +188,7 @@ if(Date.now()-Number(t)>IDLE_MS){clearSession();return null;}
 try{return JSON.parse(s);}catch(e){clearSession();return null;}
 }
 function show(id){
-["v-login","v-invite","v-recover","v-home"].forEach(function(v){document.getElementById(v).classList.add("hide");});
+["v-login","v-invite","v-rcode","v-recover","v-home"].forEach(function(v){document.getElementById(v).classList.add("hide");});
 document.getElementById(id).classList.remove("hide");
 }
 function showHome(s){
@@ -211,16 +235,86 @@ msg("l-msg","تعذّر الاتصال بالخادم. تحقق من الإنت�
 }
 b.disabled=false;
 }
-function doInvite(){
+async function doInvite(){
 var c=val("i-code");
-var u=val("i-user");
+var u=val("i-user").toLowerCase();
 var p=document.getElementById("i-pass").value;
 var p2=document.getElementById("i-pass2").value;
 if(!c){msg("i-msg","أدخل رمز الدعوة");return;}
 if(!/^[a-z0-9_]{3,20}$/.test(u)){msg("i-msg","اسم المستخدم غير صالح");return;}
 if(p.length<8||p.length>72){msg("i-msg","كلمة السر من 8 إلى 72 خانة");return;}
 if(p!==p2){msg("i-msg","كلمتا السر غير متطابقتين");return;}
-msg("i-msg","الحقول سليمة. ربط التسجيل بالخادم في المرحلة القادمة.",true);
+var b=document.getElementById("i-btn");
+b.disabled=true;
+msg("i-msg","جارٍ إنشاء الحساب...",true);
+try{
+var r=await callFn(["redeem-invite"],{code:c,username:u,password:p});
+var d=r.data||{};
+if(r.status===200&&d.ok&&d.recovery_code){
+pend={u:u,p:p};
+document.getElementById("rc-code").textContent=d.recovery_code;
+document.getElementById("rc-chk").checked=false;
+document.getElementById("rc-btn").disabled=true;
+msg("rc-msg","");
+["i-code","i-user","i-pass","i-pass2"].forEach(function(id){document.getElementById(id).value="";});
+msg("i-msg","");
+show("v-rcode");
+}else{
+msg("i-msg",inviteErr(r.status,d));
+}
+}catch(e){
+msg("i-msg","تعذّر الاتصال بالخادم. تحقق من الإنترنت وحاول مرة أخرى.");
+}
+b.disabled=false;
+}
+function fallbackCopy(t,done){
+var ok=false;
+try{
+var a=document.createElement("textarea");
+a.value=t;
+a.style.position="fixed";
+a.style.opacity="0";
+document.body.appendChild(a);
+a.select();
+ok=document.execCommand("copy");
+document.body.removeChild(a);
+}catch(e){}
+done(ok);
+}
+function copyCode(){
+var t=document.getElementById("rc-code").textContent;
+function done(ok){msg("rc-msg",ok?"تم النسخ":"تعذّر النسخ. اضغط مطولاً على الرمز لنسخه يدوياً",ok);}
+if(navigator.clipboard&&navigator.clipboard.writeText){
+navigator.clipboard.writeText(t).then(function(){done(true);},function(){fallbackCopy(t,done);});
+}else{
+fallbackCopy(t,done);
+}
+}
+function onChk(){
+document.getElementById("rc-btn").disabled=!document.getElementById("rc-chk").checked;
+}
+async function finishInvite(){
+if(!pend){show("v-login");return;}
+var b=document.getElementById("rc-btn");
+b.disabled=true;
+msg("rc-msg","جارٍ الدخول...",true);
+try{
+var r=await callFn(["Login","login"],{username:pend.u,password:pend.p,device_id:deviceId()});
+var d=r.data||{};
+pend=null;
+document.getElementById("rc-code").textContent="";
+if(r.status===200&&d.ok&&d.session){
+saveSession(d);
+msg("rc-msg","");
+showHome({u:d.username,role:d.role});
+}else{
+show("v-login");
+msg("l-msg","تم إنشاء حسابك. سجّل الدخول للمتابعة.",true);
+}
+}catch(e){
+msg("rc-msg","تعذّر الاتصال. اضغط متابعة مرة أخرى.");
+b.disabled=false;
+}
 }
 function doRecover(){
 var u=val("r-user");
