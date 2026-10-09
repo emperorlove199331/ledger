@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>استيراد</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+body{font-family:sans-serif;background:#111;color:#eee;padding:16px;margin:0}
+button{background:#D4AF37;color:#111;border:0;border-radius:10px;padding:12px 16px;font-size:16px;margin:8px 0;width:100%}
+pre{white-space:pre-wrap;word-break:break-all;background:#1c1c1c;padding:12px;border-radius:10px;font-size:13px;direction:ltr;text-align:left}
+input{width:100%;margin:8px 0;color:#eee}
+</style>
+</head>
+<body>
+<h3>استيراد النسخة إلى Supabase</h3>
+<input type="file" id="f" accept=".json,application/json">
+<button id="chk">1) فحص فقط (بدون كتابة)</button>
+<button id="imp">2) استيراد ثم فحص</button>
+<pre id="out"></pre>
+<script>
+const URL_='https://zxqrmaeikptepwnwfjnx.supabase.co';
+const KEY='sb_publishable_43tDH1_qpK50o-8YNqwwPA_sHZpft7-';
+const ADMIN='3fe3038d-55ea-431d-b362-f81207958d93';
+const sb=window.supabase.createClient(URL_,KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+const MAP=[['cashiers','cashiers'],['transactions','transactions'],['walletFunding','wallet_funding'],['platformPayins','platform_payins'],['walletTransfers','wallet_transfers'],['externalWithdrawals','external_withdrawals'],['reconciliations','reconciliations']];
+const out=document.getElementById('out');
+function log(s){out.textContent+=s+'\n';}
+function stable(v){
+if(Array.isArray(v)) return '['+v.map(stable).join(',')+']';
+if(v&&typeof v==='object') return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+stable(v[k])).join(',')+'}';
+return JSON.stringify(v);
+}
+function readSession(){
+const raw=localStorage.getItem('ledger_session');
+if(!raw) return null;
+let o;
+try{o=JSON.parse(raw);}catch(e){return null;}
+const s=(o&&o.session)?o.session:o;
+if(s&&s.access_token&&s.refresh_token) return s;
+return null;
+}
+function saveBack(ns){
+try{
+const o=JSON.parse(localStorage.getItem('ledger_session'));
+const t=(o.session&&o.session.access_token)?o.session:o;
+t.access_token=ns.access_token;
+t.refresh_token=ns.refresh_token;
+t.expires_at=ns.expires_at;
+localStorage.setItem('ledger_session',JSON.stringify(o));
+}catch(e){}
+}
+async function auth(){
+const s=readSession();
+if(!s){log('لا توجد جلسة محفوظة. افتح الصفحة من داخل تلغرام بعد تسجيل الدخول.');return null;}
+const r=await sb.auth.setSession({access_token:s.access_token,refresh_token:s.refresh_token});
+if(r.error||!r.data||!r.data.session){log('فشل استعادة الجلسة: '+(r.error?r.error.message:'غير معروف'));return null;}
+saveBack(r.data.session);
+const uid=r.data.session.user.id;
+if(uid!==ADMIN){log('هذا ليس حساب wael_dr. توقفت.');return null;}
+log('الحساب: wael_dr (تم التحقق)');
+return uid;
+}
+async function getFile(){
+const file=document.getElementById('f').files[0];
+if(!file){log('اختر ملف النسخة أولاً');return null;}
+return JSON.parse(await file.text());
+}
+async function fetchAll(t){
+let all=[],from=0;
+while(true){
+const q=await sb.from(t).select('id,doc,deleted_at').range(from,from+999);
+if(q.error) throw new Error(t+': '+q.error.message);
+all=all.concat(q.data);
+if(q.data.length<1000) break;
+from+=1000;
+}
+return all;
+}
+async function compare(data){
+for(const [k,t] of MAP){
+const bk=data[k]||[];
+const db=await fetchAll(t);
+const m={};
+db.forEach(r=>{m[r.id]=r;});
+const seen={};
+const missIds=[];
+const diffIds=[];
+bk.forEach(x=>{
+const id=String(x.id);
+seen[id]=1;
+const r=m[id];
+if(!r){missIds.push(id);}
+else if(stable(r.doc)!==stable(x)){diffIds.push(id);}
+});
+let extra=0;
+db.forEach(r=>{if(!seen[r.id]) extra++;});
+log(t+': نسخة='+bk.length+' قاعدة='+db.length+' ناقص='+missIds.length+' مختلف='+diffIds.length+' زائد='+extra);
+if(missIds.length&&missIds.length<=10) log('ناقص: '+missIds.join(' '));
+if(diffIds.length&&diffIds.length<=10) log('مختلف: '+diffIds.join(' '));
+}
+}
+document.getElementById('chk').onclick=async()=>{
+out.textContent='';
+try{
+const data=await getFile();
+if(!data) return;
+const uid=await auth();
+if(!uid) return;
+log('وضع الفحص فقط، لا كتابة.');
+await compare(data);
+log('انتهى الفحص.');
+}catch(e){log('خطأ: '+e.message);}
+};
+document.getElementById('imp').onclick=async()=>{
+out.textContent='';
+try{
+const data=await getFile();
+if(!data) return;
+const uid=await auth();
+if(!uid) return;
+for(const [k,t] of MAP){
+const rows=(data[k]||[]).map(x=>({id:String(x.id),user_id:uid,doc:x}));
+for(let i=0;i<rows.length;i+=100){
+const part=rows.slice(i,i+100);
+const r=await sb.from(t).upsert(part,{onConflict:'user_id,id'});
+if(r.error){log('فشل '+t+': '+r.error.message);return;}
+}
+log('كُتب '+t+': '+rows.length);
+}
+log('--- الفحص بعد الكتابة ---');
+await compare(data);
+log('انتهى.');
+}catch(e){log('خطأ: '+e.message);}
+};
+</script>
+</body>
+</html>
