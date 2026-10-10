@@ -168,6 +168,7 @@ input:focus{border-color:var(--gold)}
 <div id="v-cash" class="hide">
 <div class="top"><div><p class="hi">الكاشيرات</p></div><div class="tools"><button class="mini" onclick="loadData()">تحديث</button></div></div>
 <button class="btn" style="margin:0 0 14px" onclick="openAddCashier()">+ إضافة كاشير جديد</button>
+<button class="btn line" style="margin:-6px 0 14px" onclick="openOpening()">🏁 الرصيد الافتتاحي</button>
 <div id="cash-body"><p class="empty">جارٍ تحميل البيانات...</p></div>
 </div>
 
@@ -177,6 +178,16 @@ input:focus{border-color:var(--gold)}
 <div class="f"><label>نسبة العمولة % (اختياري)</label><input id="c-rate" class="mono" type="number" inputmode="decimal" placeholder="مثلاً: 35"></div>
 <p id="c-msg" class="msg"></p>
 <button id="c-btn" class="btn" onclick="saveCashier()">حفظ</button>
+<button class="btn line" style="margin-top:10px" onclick="show('v-cash')">إلغاء</button>
+</div>
+
+<div id="v-open" class="card hide">
+<h2>🏁 الرصيد الافتتاحي</h2>
+<p id="ob-step" class="sub" style="margin-bottom:14px"></p>
+<div id="ob-body"></div>
+<p id="ob-msg" class="msg"></p>
+<button id="ob-next" class="btn" onclick="obNext()">التالي</button>
+<button id="ob-prev" class="btn line" style="margin-top:10px" onclick="obPrev()">السابق</button>
 <button class="btn line" style="margin-top:10px" onclick="show('v-cash')">إلغاء</button>
 </div>
 
@@ -533,6 +544,282 @@ b.disabled=false;
 b.textContent="حفظ";
 }
 }
+var ob={step:0,date:"",debts:[],wallets:{cash:"",shamcash:"",platform:""},existing:false};
+function openTxOf(cid){
+for(var i=0;i<data.transactions.length;i++){
+var t=data.transactions[i];
+if(t.opening&&t.cashierId===cid){return t;}
+}
+return null;
+}
+function uniqId(used){
+var id=newId();
+while(used[id]){id=newId();}
+used[id]=1;
+return id;
+}
+function openOpening(){
+if(!data){toast("البيانات لم تُحمَّل بعد");return;}
+var ob0=data.openingBalances||null;
+var dates=[];
+var debts=[];
+for(var i=0;i<data.transactions.length;i++){
+var t=data.transactions[i];
+if(t.opening){debts.push({cashierId:t.cashierId,name:cashierName(t.cashierId),amount:t.amount,paid:paidAmountOf(t)});}
+else if(t.date){dates.push(t.date);}
+}
+dates.sort();
+var today=localDateStr(new Date());
+var def=(dates[0]&&dates[0]<today)?dates[0]:today;
+ob={step:0,date:(ob0&&ob0.date)||def,debts:debts,existing:!!ob0||debts.length>0,
+wallets:{cash:ob0?(ob0.cash||""):"",shamcash:ob0?(ob0.shamcash||""):"",platform:ob0?(ob0.platform||""):""}};
+obRender();
+show("v-open");
+}
+function obCollect(){
+if(ob.step===0){
+var d=document.getElementById("ob-date");
+if(d&&d.value){ob.date=d.value;}
+for(var i=0;i<ob.debts.length;i++){
+var el=document.getElementById("ob-d-"+i);
+if(el){ob.debts[i].amount=Math.max(0,Number(el.value)||0);}
+}
+}else{
+var ks=["cash","shamcash","platform"];
+for(var k=0;k<ks.length;k++){
+var w=document.getElementById("ob-w-"+ks[k]);
+if(w){ob.wallets[ks[k]]=w.value;}
+}
+}
+}
+function obAddDebt(){
+obCollect();
+var name=val("ob-name");
+var amount=Number(document.getElementById("ob-amt").value);
+if(!name){msg("ob-msg","أدخل اسم الكاشير");return;}
+if(!amount||amount<=0){msg("ob-msg","أدخل مبلغ الدين");return;}
+var low=name.toLowerCase();
+var c=null;
+for(var i=0;i<data.cashiers.length;i++){
+if(String(data.cashiers[i].name).trim().toLowerCase()===low){c=data.cashiers[i];break;}
+}
+for(var j=0;j<ob.debts.length;j++){
+var d=ob.debts[j];
+if((c&&d.cashierId===c.id)||(!d.cashierId&&d.name.trim().toLowerCase()===low)){msg("ob-msg","الاسم موجود، عدّل مبلغه من القائمة");return;}
+}
+ob.debts.push({cashierId:c?c.id:null,name:c?c.name:name,amount:amount,paid:0});
+obRender();
+}
+function obRemoveDebt(i){
+obCollect();
+var d=ob.debts[i];
+if(!d){return;}
+if(d.paid>0){msg("ob-msg","هذا الدين انسدد منه جزء، لا يمكن حذفه");return;}
+ob.debts.splice(i,1);
+obRender();
+}
+function obSums(){
+var debts=0;
+for(var i=0;i<ob.debts.length;i++){
+var d=ob.debts[i];
+if(d.amount>0){debts+=Math.max(0,d.amount-(d.paid||0));}
+}
+var w=ob.wallets;
+var wal=(Number(w.cash)||0)+(Number(w.shamcash)||0)+(Number(w.platform)||0);
+return {debts:debts,wallets:wal,total:debts+wal};
+}
+function obValidate(){
+if(ob.date>localDateStr(new Date())){return "التاريخ لا يجوز أن يكون في المستقبل";}
+var keep={};
+for(var i=0;i<ob.debts.length;i++){
+var d=ob.debts[i];
+if(!(d.amount>0)){continue;}
+if(d.cashierId){
+keep[d.cashierId]=1;
+var ot=openTxOf(d.cashierId);
+if(ot&&d.amount<paidAmountOf(ot)){return "دين "+d.name+" أقل من المبلغ الذي انسدد منه ("+fmt(paidAmountOf(ot))+")";}
+}
+}
+for(var j=0;j<data.transactions.length;j++){
+var t=data.transactions[j];
+if(t.opening&&!keep[t.cashierId]&&paidAmountOf(t)>0){return "دين "+cashierName(t.cashierId)+" انسدد منه جزء، لا يمكن إزالته";}
+}
+return "";
+}
+function obSummary(){
+var el=document.getElementById("ob-sum");
+if(!el){return;}
+obCollect();
+var t=obSums();
+el.innerHTML='<div class="row"><span>ديون معلّقة</span><span class="a mono">'+fmt(t.debts)+'</span></div><div class="row"><span>أرصدة المحافظ</span><span class="a mono">'+fmt(t.wallets)+'</span></div><div class="row"><b>إجمالي رأس المال</b><b class="a mono">'+fmt(t.total)+'</b></div>';
+}
+function obRender(){
+msg("ob-msg","");
+var body=document.getElementById("ob-body");
+var h="";
+if(ob.step===0){
+document.getElementById("ob-step").textContent="1 من 2 · الديون السابقة";
+h+='<p class="sub" style="margin-bottom:14px">سجّل كل كاشير عليه دين قبل بدء استخدام الدفتر. لا يُخصم من أي محفظة ولا يُحسب في دخل أول شهر. إذا كان الاسم غير موجود يُنشأ كاشير جديد بعمولة 0.</p>';
+h+='<div class="f"><label>تاريخ البداية</label><input id="ob-date" type="date" value="'+esc(ob.date)+'" max="'+localDateStr(new Date())+'"></div>';
+if(!ob.debts.length){h+='<p class="empty">لم تُضف أي دين حتى الآن.</p>';}
+for(var i=0;i<ob.debts.length;i++){
+var d=ob.debts[i];
+h+='<div class="row"><div class="m"><p class="n">'+esc(d.name)+(d.cashierId?'':'<span class="chip partial">جديد</span>')+'</p>'+(d.paid>0?'<p class="s">انسدد منه '+fmt(d.paid)+'</p>':'')+'</div>';
+h+='<input id="ob-d-'+i+'" class="mono" type="number" inputmode="decimal" value="'+esc(d.amount)+'" style="width:120px;flex:none">';
+h+='<button type="button" onclick="obRemoveDebt('+i+')" style="background:none;border:0;color:var(--err);font-size:18px;padding:4px 6px;cursor:pointer" aria-label="حذف">✕</button></div>';
+}
+var opts="";
+for(var k=0;k<data.cashiers.length;k++){opts+='<option value="'+esc(data.cashiers[k].name)+'"></option>';}
+h+='<div style="display:flex;gap:8px;margin-top:12px"><input list="ob-names" id="ob-name" placeholder="اسم الكاشير" autocomplete="off" style="flex:1.4;min-width:0;direction:rtl;text-align:right"><input id="ob-amt" class="mono" type="number" inputmode="decimal" placeholder="المبلغ" style="flex:1;min-width:0"></div>';
+h+='<datalist id="ob-names">'+opts+'</datalist>';
+h+='<button class="btn line" style="margin:10px 0 14px" onclick="obAddDebt()">➕ إضافة</button>';
+document.getElementById("ob-next").textContent="التالي";
+document.getElementById("ob-prev").style.display="none";
+}else{
+document.getElementById("ob-step").textContent="2 من 2 · أرصدة المحافظ";
+h+='<p class="sub" style="margin-bottom:14px">اكتب الرصيد الفعلي الموجود الآن في كل محفظة. يُسجَّل كما هو.</p>';
+var w=ob.wallets;
+h+='<div class="f"><label>الكاش</label><input id="ob-w-cash" class="mono" type="number" inputmode="decimal" placeholder="0" value="'+esc(w.cash)+'" oninput="obSummary()"></div>';
+h+='<div class="f"><label>شام كاش</label><input id="ob-w-shamcash" class="mono" type="number" inputmode="decimal" placeholder="0" value="'+esc(w.shamcash)+'" oninput="obSummary()"></div>';
+h+='<div class="f"><label>المنصة</label><input id="ob-w-platform" class="mono" type="number" inputmode="decimal" placeholder="0" value="'+esc(w.platform)+'" oninput="obSummary()"></div>';
+h+='<div id="ob-sum"></div>';
+if(ob.existing){h+='<p class="msg" style="color:var(--gold)">⚠️ الرصيد الافتتاحي مسجّل مسبقاً، وتعديله يغيّر أرصدة المحافظ الحالية.</p>';}
+document.getElementById("ob-next").textContent="حفظ";
+document.getElementById("ob-prev").style.display="block";
+}
+body.innerHTML=h;
+if(ob.step===1){obSummary();}
+}
+function obPrev(){
+obCollect();
+if(ob.step>0){ob.step--;obRender();}
+}
+function obNext(){
+obCollect();
+if(ob.step===0){
+var e=obValidate();
+if(e){msg("ob-msg",e);return;}
+ob.step=1;
+obRender();
+window.scrollTo(0,0);
+}else{obSave();}
+}
+function obReplaceLocal(list,t){
+for(var i=0;i<list.length;i++){
+if(list[i].id===t.id){list[i]=t;return;}
+}
+list.push(t);
+}
+async function obSave(){
+var b=document.getElementById("ob-next");
+if(b.disabled){return;}
+obCollect();
+var e=obValidate();
+if(e){msg("ob-msg",e);return;}
+var w={cash:Math.max(0,Number(ob.wallets.cash)||0),shamcash:Math.max(0,Number(ob.wallets.shamcash)||0),platform:Math.max(0,Number(ob.wallets.platform)||0)};
+var today=localDateStr(new Date());
+var date=ob.date||today;
+var used={};
+for(var u0=0;u0<data.cashiers.length;u0++){used[data.cashiers[u0].id]=1;}
+for(var u1=0;u1<data.transactions.length;u1++){used[data.transactions[u1].id]=1;}
+var rows=[];
+for(var r0=0;r0<ob.debts.length;r0++){if(ob.debts[r0].amount>0){rows.push(ob.debts[r0]);}}
+var newCs=[];
+var ups=[];
+var applied={};
+for(var i=0;i<rows.length;i++){
+var d=rows[i];
+var cid=d.cashierId;
+if(!cid){
+var c={id:uniqId(used),name:d.name,createdAt:today,commissionRate:0};
+newCs.push(c);
+cid=c.id;
+d.cashierId=cid;
+}
+applied[cid]=1;
+var ot=openTxOf(cid);
+if(ot){
+if(ot.amount===d.amount&&ot.date===date){continue;}
+var t=JSON.parse(JSON.stringify(ot));
+t.amount=d.amount;
+t.date=date;
+var paid=paidAmountOf(ot);
+t.status=paid>=d.amount?"paid":(paid>0?"partial":"pending");
+ups.push(t);
+}else{
+ups.push({id:uniqId(used),type:"charge",cashierId:cid,amount:d.amount,date:date,time:"00:00",note:"دين سابق (رصيد افتتاحي)",method:"cash",status:"pending",fundingSource:"none",opening:true});
+}
+}
+var created=newCs.length;
+var dels=[];
+for(var j=0;j<data.transactions.length;j++){
+var x=data.transactions[j];
+if(x.opening&&!applied[x.cashierId]){dels.push(x.id);}
+}
+var sums=obSums();
+b.disabled=true;
+b.textContent="جارٍ الحفظ...";
+msg("ob-msg","");
+var stage="الكاشيرات";
+try{
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){sessionExpired();return;}
+if(r.state!=="ok"){msg("ob-msg","تعذّر الاتصال. حاول مرة أخرى.");return;}
+var tok=r.sess.s.access_token;
+var H={"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json"};
+var HM={"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=minimal"};
+var HU={"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=minimal"};
+if(newCs.length){
+var cr=await fetch(SB+"/rest/v1/cashiers",{method:"POST",headers:HM,body:JSON.stringify(newCs.map(function(c){return {id:c.id,doc:c};}))});
+if(cr.status!==201&&cr.status!==200&&cr.status!==204){throw new Error("cashiers "+cr.status+" "+(await cr.text()).slice(0,140));}
+for(var n=0;n<newCs.length;n++){data.cashiers.push(newCs[n]);}
+newCs=[];
+}
+stage="الديون";
+if(ups.length){
+var u=await fetch(SB+"/rest/v1/transactions?on_conflict=user_id,id",{method:"POST",headers:HU,body:JSON.stringify(ups.map(function(t){return {id:t.id,doc:t};}))});
+if(u.status!==201&&u.status!==200&&u.status!==204){throw new Error("transactions "+u.status+" "+(await u.text()).slice(0,140));}
+for(var q=0;q<ups.length;q++){obReplaceLocal(data.transactions,ups[q]);}
+}
+for(var k=0;k<dels.length;k++){
+var dr=await fetch(SB+"/rest/v1/transactions?id=eq."+encodeURIComponent(dels[k]),{method:"PATCH",headers:{"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify({deleted_at:new Date().toISOString()})});
+var dj=dr.status===200?await dr.json():[];
+if(dr.status!==200||!dj.length){throw new Error("delete "+dr.status);}
+data.transactions=data.transactions.filter(function(z){return z.id!==dels[k];});
+}
+stage="الأرصدة";
+var gr=await fetch(SB+"/rest/v1/settings?select=user_id,doc",{headers:H});
+if(gr.status!==200){throw new Error("settings "+gr.status);}
+var gj=await gr.json();
+var cur=(gj.length&&gj[0].doc)?gj[0].doc:{};
+var nd={};
+for(var key in cur){nd[key]=cur[key];}
+nd.openingBalances={date:date,cash:w.cash,shamcash:w.shamcash,platform:w.platform};
+var sres;
+if(gj.length){
+sres=await fetch(SB+"/rest/v1/settings?user_id=eq."+encodeURIComponent(gj[0].user_id),{method:"PATCH",headers:{"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify({doc:nd})});
+var sj2=sres.status===200?await sres.json():[];
+if(sres.status!==200||!sj2.length){throw new Error("settings save "+sres.status);}
+}else{
+sres=await fetch(SB+"/rest/v1/settings",{method:"POST",headers:HM,body:JSON.stringify({doc:nd})});
+if(sres.status!==201&&sres.status!==200&&sres.status!==204){throw new Error("settings insert "+sres.status);}
+}
+var logOk=false;
+try{
+var lr=await fetch(SB+"/rest/v1/activity_log",{method:"POST",headers:HM,body:JSON.stringify({doc:{id:newId(),ts:new Date().toISOString(),action:"رصيد افتتاحي",detail:"ديون "+fmt(sums.debts)+" + محافظ "+fmt(sums.wallets)+" = "+fmt(sums.total)+(created?" — أُضيف "+created+" كاشير جديد":"")}})});
+logOk=(lr.status===201||lr.status===200||lr.status===204);
+}catch(e2){}
+await loadData();
+show("v-cash");
+toast(logOk?"تم حفظ الرصيد الافتتاحي":"حُفظ الرصيد (تعذّر تسجيل النشاط)");
+}catch(err){
+var m=(err&&err.message)?err.message:"خطأ";
+msg("ob-msg",stage==="الأرصدة"?"حُفظت الديون لكن تعذّر حفظ الأرصدة ("+m+"). اضغط حفظ مرة أخرى.":"تعذّر الحفظ في مرحلة "+stage+" ("+m+"). ما حُفظ سابقاً لن يتكرر عند إعادة المحاولة.");
+}finally{
+b.disabled=false;
+b.textContent="حفظ";
+}
+}
 function toast(t){
 var el=document.getElementById("toast");
 el.textContent=t;
@@ -717,7 +1004,13 @@ var rows=await fetchTable(TBL[i][1],tok);
 sortRecs(rows,TBL[i][0]);
 d[TBL[i][0]]=rows;
 }
-d.lockedMonths=[];
+var sr=await fetch(SB+"/rest/v1/settings?select=doc",{headers:{"apikey":ANON,"Authorization":"Bearer "+tok}});
+if(sr.status!==200){throw new Error("settings "+sr.status);}
+var sj=await sr.json();
+var sd=(sj.length&&sj[0].doc)?sj[0].doc:{};
+d.lockedMonths=sd.lockedMonths||[];
+d.openingBalances=sd.openingBalances||null;
+d.feeCompensations=sd.feeCompensations||[];
 d.log=[];
 data=d;
 body.innerHTML=homeHTML();
@@ -730,10 +1023,10 @@ else{toast("تعذّر التحديث");}
 loadingData=false;
 }
 function show(id){
-["v-login","v-invite","v-rcode","v-recover","v-home","v-cash","v-addcash","v-check"].forEach(function(v){document.getElementById(v).classList.add("hide");});
+["v-login","v-invite","v-rcode","v-recover","v-home","v-cash","v-addcash","v-open","v-check"].forEach(function(v){document.getElementById(v).classList.add("hide");});
 document.getElementById(id).classList.remove("hide");
 var navIdx={"v-home":0,"v-cash":2,"v-check":3};
-document.body.classList.toggle("is-home",id==="v-home"||id==="v-cash"||id==="v-addcash"||id==="v-check");
+document.body.classList.toggle("is-home",id==="v-home"||id==="v-cash"||id==="v-addcash"||id==="v-open"||id==="v-check");
 var nv=document.getElementById("nav");
 var bs=nv.getElementsByTagName("button");
 for(var i=0;i<bs.length;i++){bs[i].className=(navIdx[id]===i)?"on":"";}
