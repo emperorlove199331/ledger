@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cashiers</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0E0E10;--card:#1A1A1D;--text:#F2EEE3;--muted:#9A9486;--gold:#D4AF37;--border:#2A2A2E;--field:#121214;--err:#E5736B;--ok:#6FBF8B}
+[data-theme="light"]{--bg:#F6F3EC;--card:#FFFFFF;--text:#1A1A1A;--muted:#6B6558;--gold:#B8921F;--border:#E6DFCC;--field:#FBF9F4;--err:#C0392B;--ok:#2E8B57}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}
+body.is-home{align-items:flex-start;padding:16px 16px 96px}
+.is-home .brand{display:none}
+.wrap{width:100%;max-width:400px}
+.brand{text-align:center;margin-bottom:22px}
+.logo{width:60px;height:60px;border-radius:18px;background:var(--gold);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;box-shadow:0 8px 24px rgba(212,175,55,.25)}
+h1{font-size:24px;margin:0 0 4px;color:var(--gold)}
+.nm{font-family:Georgia,"Times New Roman",serif;font-size:36px;letter-spacing:3px;font-weight:700;direction:ltr}
+@supports (-webkit-text-stroke:1px #000){.nm{color:transparent;-webkit-text-stroke:1.4px var(--gold)}}
+.sub{color:var(--muted);font-size:14px;margin:0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.card h2{font-size:18px;margin:0 0 16px}
+label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px}
+.f{margin-bottom:14px;position:relative}
+input{width:100%;height:48px;border-radius:12px;border:1px solid var(--border);background:var(--field);color:var(--text);font-size:16px;padding:0 14px;outline:none;direction:ltr;text-align:left}
+input:focus{border-color:var(--gold)}
+#l-pass,#i-pass{padding-right:70px}
+.eye{position:absolute;right:8px;bottom:6px;height:36px;padding:0 10px;border:0;background:transparent;color:var(--muted);font-size:13px;cursor:pointer}
+.btn{width:100%;height:50px;border:0;border-radius:14px;background:var(--gold);color:#1A1400;font-size:17px;font-weight:700;cursor:pointer;margin-top:4px}
+.btn:active{opacity:.85}
+.btn:disabled{opacity:.4}
+.btn.line{background:transparent;border:1px solid var(--border);color:var(--text);font-weight:600}
+.links{display:flex;justify-content:space-between;margin-top:16px;font-size:14px}
+.links a{color:var(--gold);cursor:pointer}
+.msg{min-height:20px;font-size:13px;margin:0 0 10px;color:var(--err)}
+.msg.ok{color:var(--gold)}
+.hint{font-size:12px;color:var(--muted);margin:-8px 0 14px}
+.hide{display:none}
+.out{text-align:center}
+.out a{display:inline-block;margin-top:16px;color:#1A1400;background:var(--gold);padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:700}
+.code{direction:ltr;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:20px;letter-spacing:1px;padding:16px 8px;border:1px dashed var(--gold);border-radius:14px;color:var(--gold);background:var(--field);margin:0 0 12px;user-select:all;-webkit-user-select:all;word-break:break-all}
+.warn{font-size:13px;color:var(--err);margin:0 0 12px;line-height:1.7}
+.chk{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:14px;cursor:pointer}
+.chk input{width:22px;height:22px;padding:0;flex:none;accent-color:var(--gold)}
+
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;direction:ltr;unicode-bidi:embed}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.hi{font-size:18px;margin:0 0 4px;font-weight:700}
+.role{display:inline-block;font-size:11px;color:var(--gold);border:1px solid var(--gold);border-radius:20px;padding:1px 9px}
+.tools{display:flex;gap:8px}
+.mini{height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;cursor:pointer}
+.hero{background:linear-gradient(145deg,var(--card),var(--field));border:1px solid var(--border);border-radius:22px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.18);margin-bottom:14px}
+.lbl{font-size:13px;color:var(--muted);margin:0 0 6px}
+.big{font-size:32px;font-weight:600;color:var(--gold);margin:0 0 14px;text-align:right}
+.big small{font-size:14px;color:var(--muted)}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.trio div{background:var(--field);border:1px solid var(--border);border-radius:12px;padding:9px 8px;text-align:center}
+.trio b{display:block;font-size:13px;font-weight:600;margin-top:3px}
+.trio span{font-size:11px;color:var(--muted)}
+.wal{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.wc{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px 8px;text-align:center}
+.wc span{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+.wc b{font-size:14px;font-weight:600}
+.neg{color:var(--err)}
+.sec{font-size:15px;margin:6px 4px 10px;font-weight:700}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:11px 14px;margin-bottom:8px}
+.row .m{min-width:0}
+.row .n{font-size:14px;font-weight:600;margin:0 0 3px}
+.row .s{font-size:12px;color:var(--muted);margin:0}
+.row .a{font-size:14px;font-weight:600;white-space:nowrap}
+.chip{display:inline-block;font-size:10px;border-radius:10px;padding:1px 7px;margin-right:6px;border:1px solid var(--border);color:var(--muted)}
+.chip.pending{color:var(--err);border-color:var(--err)}
+.chip.partial{color:var(--gold);border-color:var(--gold)}
+.chip.paid{color:var(--ok);border-color:var(--ok)}
+.empty{text-align:center;color:var(--muted);font-size:13px;padding:18px}
+.tiny{font-size:11px;text-align:center;margin:10px 0 0}
+.nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;background:var(--card);border-top:1px solid var(--border);padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+.nav.hide{display:none}
+.nav button{flex:1;background:transparent;border:0;color:var(--muted);font-size:12px;padding:6px 0;cursor:pointer}
+.nav button.on{color:var(--gold);font-weight:700}
+.nav i{display:block;font-style:normal;font-size:18px;margin-bottom:2px}
+.ck{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.ck:last-child{border-bottom:0}
+.ck .v{direction:ltr;text-align:left;font-size:12px}
+.ck .good{color:var(--ok)}
+.ck .bad{color:var(--err)}
+.verdict{font-size:15px;font-weight:700;margin:0 0 12px}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 16px;font-size:13px;display:none;z-index:9}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="brand">
+<div class="logo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1A1400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/><path d="M9 8h6"/></svg></div>
+<h1 class="nm">Cashiers</h1>
+<p class="sub">دفتر الكاشيرات</p>
+</div>
+
+<div id="outside" class="card out hide">
+<h2>افتح الدفتر من تلغرام</h2>
+<p class="sub">هذا الدفتر يعمل داخل تلغرام فقط. افتح البوت واضغط زر فتح الدفتر.</p>
+<a href="https://t.me/wael_ledger_bot">فتح البوت</a>
+</div>
+
+<div id="app" class="hide">
+
+<div id="v-login" class="card">
+<h2>تسجيل الدخول</h2>
+<div class="f"><label>اسم المستخدم</label><input id="l-user" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
+<div class="f"><label>كلمة السر</label><input id="l-pass" type="password" autocomplete="current-password"><button class="eye" onclick="eye('l-pass',this)">إظهار</button></div>
+<p id="l-msg" class="msg"></p>
+<button id="l-btn" class="btn" onclick="doLogin()">دخول</button>
+<div class="links"><a onclick="show('v-invite')">لدي دعوة</a><a onclick="show('v-recover')">نسيت كلمة السر</a></div>
+</div>
+
+<div id="v-invite" class="card hide">
+<h2>حساب جديد بدعوة</h2>
+<div class="f"><label>رمز الدعوة</label><input id="i-code" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" style="text-transform:uppercase"></div>
+<div class="f"><label>اختر اسم مستخدم</label><input id="i-user" autocapitalize="none" spellcheck="false"></div>
+<p class="hint">3 إلى 20 حرفاً إنجليزياً صغيراً أو أرقاماً أو _</p>
+<div class="f"><label>كلمة السر</label><input id="i-pass" type="password" autocomplete="new-password"><button class="eye" onclick="eye('i-pass',this)">إظهار</button></div>
+<div class="f"><label>تأكيد كلمة السر</label><input id="i-pass2" type="password" autocomplete="new-password"></div>
+<p id="i-msg" class="msg"></p>
+<button id="i-btn" class="btn" onclick="doInvite()">إنشاء الحساب</button>
+<div class="links"><a onclick="show('v-login')">رجوع لتسجيل الدخول</a></div>
+</div>
+
+<div id="v-rcode" class="card hide">
+<h2>رمز الاسترجاع</h2>
+<p class="warn">هذا الرمز يُعرض لك مرة واحدة فقط ولا يمكن عرضه مرة ثانية. احفظه في مكان آمن خارج التطبيق. ستحتاجه إذا نسيت كلمة السر.</p>
+<div id="rc-code" class="code"></div>
+<button class="btn line" onclick="copyCode()">نسخ الرمز</button>
+<p id="rc-msg" class="msg" style="margin-top:10px"></p>
+<label class="chk"><input id="rc-chk" type="checkbox" onchange="onChk()"><span>حفظت الرمز في مكان آمن</span></label>
+<button id="rc-btn" class="btn" onclick="finishInvite()" disabled>متابعة</button>
+</div>
+
+<div id="v-recover" class="card hide">
+<h2>استرجاع الحساب</h2>
+<div class="f"><label>اسم المستخدم</label><input id="r-user" autocapitalize="none" spellcheck="false"></div>
+<div class="f"><label>رمز الاسترجاع</label><input id="r-code" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" style="text-transform:uppercase"></div>
+<p id="r-msg" class="msg"></p>
+<button class="btn" onclick="doRecover()">متابعة</button>
+<div class="links"><a onclick="show('v-login')">رجوع لتسجيل الدخول</a></div>
+</div>
+
+<div id="v-home" class="hide">
+<div class="top">
+<div><p id="h-hi" class="hi"></p><span id="h-role" class="role"></span></div>
+<div class="tools"><button class="mini" onclick="loadData()">تحديث</button><button class="mini" onclick="doLogout()">خروج</button></div>
+</div>
+<div id="h-body"><p class="empty">جارٍ تحميل البيانات...</p></div>
+<button id="bk-btn" class="btn line" style="margin-top:6px" onclick="doBackup()">نسخة احتياطية</button>
+<p id="bk-msg" class="msg" style="margin:8px 0 0;text-align:center"></p>
+<p id="h-exp" class="sub tiny"></p>
+</div>
+
+<div id="v-check" class="card hide">
+<h2>فحص الأرقام</h2>
+<div id="ck-body"></div>
+<button class="btn line" style="margin-top:14px" onclick="show('v-home')">رجوع</button>
+</div>
+
+<div id="v-cash" class="hide">
+<div class="top"><div><p class="hi">الكاشيرات</p></div><div class="tools"><button class="mini" onclick="loadData()">تحديث</button></div></div>
+<button class="btn" style="margin:0 0 14px" onclick="openAddCashier()">+ إضافة كاشير جديد</button>
+<button class="btn line" style="margin:-6px 0 14px" onclick="openOpening()">🏁 الرصيد الافتتاحي</button>
+<div id="cash-body"><p class="empty">جارٍ تحميل البيانات...</p></div>
+</div>
+
+<div id="v-addcash" class="card hide">
+<h2>كاشير جديد</h2>
+<div class="f"><label>الاسم</label><input id="c-name" style="direction:rtl;text-align:right" placeholder="اسم الكاشير" autocomplete="off"></div>
+<div class="f"><label>نسبة العمولة % (اختياري)</label><input id="c-rate" class="mono" type="number" inputmode="decimal" placeholder="مثلاً: 35"></div>
+<p id="c-msg" class="msg"></p>
+<button id="c-btn" class="btn" onclick="saveCashier()">حفظ</button>
+<button class="btn line" style="margin-top:10px" onclick="show('v-cash')">إلغاء</button>
+</div>
+
+<div id="v-cashier" class="card hide">
+<h2 id="cd-title"></h2>
+<div id="cd-body"></div>
+<div class="f"><label>نسبة العمولة %</label><input id="cd-rate" class="mono" type="number" inputmode="decimal" placeholder="0"></div>
+<p id="cd-msg" class="msg"></p>
+<button id="cd-save" class="btn" onclick="saveCommission()">حفظ العمولة</button>
+<button id="cd-sus" class="btn line" style="margin-top:10px" onclick="toggleSuspend()">إيقاف الكاشير</button>
+<button id="cd-del" class="btn line" style="margin-top:10px;color:var(--err);border-color:var(--err)" onclick="deleteCashier()">حذف الكاشير</button>
+<button class="btn line" style="margin-top:10px" onclick="show('v-cash')">رجوع</button>
+</div>
+
+<div id="v-open" class="card hide">
+<h2>🏁 الرصيد الافتتاحي</h2>
+<p id="ob-step" class="sub" style="margin-bottom:14px"></p>
+<div id="ob-body"></div>
+<p id="ob-msg" class="msg"></p>
+<button id="ob-next" class="btn" onclick="obNext()">التالي</button>
+<button id="ob-prev" class="btn line" style="margin-top:10px" onclick="obPrev()">السابق</button>
+<button class="btn line" style="margin-top:10px" onclick="show('v-cash')">إلغاء</button>
+</div>
+
+<div id="nav" class="nav hide">
+<button onclick="navTo('home')"><i>⌂</i>الرئيسية</button>
+<button onclick="navTo('ops')"><i>≡</i>العمليات</button>
+<button onclick="navTo('cash')"><i>☰</i>الكاشيرات</button>
+<button onclick="navTo('check')"><i>✓</i>فحص الأرقام</button>
+</div>
+
+</div>
+</div>
+<div id="toast"></div>
+<script>
+var tg=window.Telegram&&window.Telegram.WebApp;
+var inTg=!!(tg&&tg.initData);
+if(inTg){tg.ready();tg.expand();}
+var FN="https://zxqrmaeikptepwnwfjnx.supabase.co/functions/v1/";
+var SB="https://zxqrmaeikptepwnwfjnx.supabase.co";
+var ANON="sb_publishable_43tDH1_qpK50o-8YNqwwPA_sHZpft7-";
+var IDLE_MS=14*24*3600*1000;
+var pend=null;
+var refreshing=null;
+var data=null;
+var loadingData=false;
+var TBL=[["cashiers","cashiers"],["transactions","transactions"],["walletFunding","wallet_funding"],["platformPayins","platform_payins"],["walletTransfers","wallet_transfers"],["externalWithdrawals","external_withdrawals"],["reconciliations","reconciliations"]];
+
+/* ===== دوال الحساب منقولة حرفياً من التطبيق القديم ===== */
+function paidAmountOf(t){
+  if(t.status==='paid') return t.amount;
+  if(Array.isArray(t.payments)) return t.payments.reduce((s,p)=>s+p.amount,0);
+  return 0;
+}
+function remainingOf(t){
+  const r = t.amount - paidAmountOf(t);
+  return r > 0 ? r : 0;
+}
+function collectedByMethod(method){
+  return data.transactions.filter(t=>t.type==='charge').reduce((sum,t)=>{
+    if(Array.isArray(t.payments)){
+      return sum + t.payments.filter(p=>p.method===method).reduce((s,p)=>s+p.amount,0);
+    }
+    if(t.status==='paid' && t.method===method) return sum + t.amount;
+    return sum;
+  }, 0);
+}
+function computeTotals(){
+  let paidCharges = 0, pendingCharges = 0, payouts = 0;
+  data.transactions.forEach(t=>{
+    if(t.type==='charge'){
+      paidCharges += paidAmountOf(t);
+      pendingCharges += remainingOf(t);
+    } else if(t.type==='payout'){
+      payouts += t.amount;
+    }
+  });
+  return { capital: paidCharges, paidCharges, pendingCharges, payouts };
+}
+function playerPayoutsOf(monthStr){
+  return (data.platformPayins||[])
+    .filter(p=>!p.smartId && p.date && p.date.startsWith(monthStr))
+    .reduce((s,p)=>s+p.amount,0);
+}
+function monthTotals(monthStr){
+  // monthStr like 2026-09
+  // دخل الشهر = كل ما شحنته للكاشيرات بهالشهر (حتى لو لسا معلّق، وبغض النظر عن تاريخ السداد) − الأرباح الممرّرة
+  let charged=0, pending=0, payouts=0;
+  data.transactions.forEach(t=>{
+    if(t.opening || !t.date || !t.date.startsWith(monthStr)) return;
+    if(t.type==='charge'){
+      charged += t.amount;
+      pending += remainingOf(t);
+    } else if(t.type==='payout'){
+      payouts += t.amount;
+    }
+  });
+  const playerPayouts = playerPayoutsOf(monthStr);
+  payouts += playerPayouts;
+  return {income: charged - payouts, charged, pending, payouts, playerPayouts};
+}
+function transferFromTo(x){
+  if(x.from && x.to) return { from:x.from, to:x.to };
+  if(x.direction==='cashToSham') return { from:'cash', to:'shamcash' };
+  if(x.direction==='shamToCash') return { from:'shamcash', to:'cash' };
+  return { from:'cash', to:'shamcash' };
+}
+function transferSent(x){ return x.sentAmount!==undefined ? x.sentAmount : x.amount; }
+function transferReceived(x){ return x.receivedAmount!==undefined ? x.receivedAmount : x.amount; }
+function transferFee(x){ return transferSent(x) - transferReceived(x); }
+function getWalletTotals(){
+  const paidCash = collectedByMethod('cash');
+  const paidSham = collectedByMethod('shamcash');
+  // سداد دين معلّق بطريقة "المنصة": هاي حركة عكسية لعملية الشحن (رجوع مبلغ من حساب اللاعب على المنصة إلى رصيد المنصة عندك)
+  // فلازم تُضاف لرصيد المنصة (مش تُخصم) — الشحن الأصلي هو يلي خصم، وهاي بترجع جزء أو كل المبلغ يلي خصم
+  const paidPlatform = collectedByMethod('platform');
+  const payoutCash = data.transactions.filter(t=>t.type==='payout'&&t.method==='cash').reduce((s,t)=>s+t.amount-(t.offset||0),0);
+  const payoutSham = data.transactions.filter(t=>t.type==='payout'&&t.method==='shamcash').reduce((s,t)=>s+t.amount-(t.offset||0),0);
+  // تمرير ربح للاعب مباشرة من المنصة — بيتخصم من رصيد المنصة بدل كاش أو شام كاش
+  const payoutPlatform = data.transactions.filter(t=>t.type==='payout'&&t.method==='platform').reduce((s,t)=>s+t.amount-(t.offset||0),0);
+  // شحنات كاشيرات تم تمويلها من محفظة شام كاش الخاصة بك مباشرة (بدل المنصة) — لازم تنخصم فورًا لأنك أرسلتها فعليًا، بغض النظر عن حالة الدفعة (مسدد/معلّق)
+  const chargeFundedSham = data.transactions.filter(t=>t.type==='charge'&&t.fundingSource==='shamcash').reduce((s,t)=>s+t.amount,0);
+  // شحنات كاشيرات تم تمويلها مباشرة من رصيد المنصة — نفس المنطق، بترسل من رصيد المنصة وبتقبض كاش أو شام كاش من الكاشير، فلازم تنخصم فورًا من رصيد المنصة
+  const chargeFundedPlatform = data.transactions.filter(t=>t.type==='charge'&&(t.fundingSource==='platform'||!t.fundingSource)).reduce((s,t)=>s+t.amount,0);
+  // العمولة (الفرق بين المرسَل والمستلم) بتضيع بالنص — ما بتنضاف لأي محفظة
+  const transfers = data.walletTransfers || [];
+  const walletDelta = { cash:0, shamcash:0, platform:0 };
+  transfers.forEach(x=>{
+    const { from, to } = transferFromTo(x);
+    walletDelta[from] = (walletDelta[from]||0) - transferSent(x);
+    walletDelta[to] = (walletDelta[to]||0) + transferReceived(x);
+  });
+  const funding = data.walletFunding || [];
+  const fundingCash = funding.filter(x=>x.destination==='cash').reduce((s,x)=>s+x.amount,0);
+  const fundingSham = funding.filter(x=>x.destination==='shamcash').reduce((s,x)=>s+x.amount,0);
+  const fundingPlatform = funding.filter(x=>x.destination==='platform').reduce((s,x)=>s+x.amount,0);
+  // شحن المنصة من كاش/شام كاش: المبلغ المدفوع (كامل، قبل العمولة) بينخصم من المحفظة المصدر
+  const fundPaidCash = funding.filter(x=>x.destination==='platform').reduce((s,x)=> s + fundingPaymentsOf(x).filter(pm=>pm.method==='cash').reduce((a,pm)=>a+pm.amount,0), 0);
+  const fundPaidSham = funding.filter(x=>x.destination==='platform').reduce((s,x)=> s + fundingPaymentsOf(x).filter(pm=>pm.method==='shamcash').reduce((a,pm)=>a+pm.amount,0), 0);
+  // دفعات وصلت من المنصة نفسها لتغطية ربح لاعب (تضاف تمامًا متل تمويل المموّل، بس مصدرها مختلف لغرض التقارير)
+  const platformIn = data.platformPayins || [];
+  const platformCash = platformIn.filter(x=>x.destination==='cash').reduce((s,x)=>s+x.amount,0);
+  const platformSham = platformIn.filter(x=>x.destination==='shamcash').reduce((s,x)=>s+x.amount,0);
+  const platformPlatform = platformIn.filter(x=>x.destination==='platform').reduce((s,x)=>s+x.amount,0);
+  // سحوبات خارجية: مبلغ بيطلع نهائيًا من محفظة معيّنة لبرا نظام المحافظ (مش تحويل لمحفظة تانية)
+  const withdrawals = data.externalWithdrawals || [];
+  const withdrawCash = withdrawals.filter(x=>x.source==='cash').reduce((s,x)=>s+x.amount,0);
+  const withdrawSham = withdrawals.filter(x=>x.source==='shamcash').reduce((s,x)=>s+x.amount,0);
+  const withdrawPlatform = withdrawals.filter(x=>x.source==='platform').reduce((s,x)=>s+x.amount,0);
+  // تعويض العمولة: مبلغ بيرجع للمحفظة (مثلاً المموّل عوّضك الخسارة كاش) وبينخصم من العمولة المتبقية
+  const comps = data.feeCompensations || [];
+  const compCash = comps.filter(x=>x.wallet==='cash').reduce((s,x)=>s+x.amount,0);
+  const compSham = comps.filter(x=>x.wallet==='shamcash').reduce((s,x)=>s+x.amount,0);
+  const compPlatform = comps.filter(x=>x.wallet==='platform').reduce((s,x)=>s+x.amount,0);
+  const cashBalance = paidCash - payoutCash + walletDelta.cash + fundingCash + platformCash - withdrawCash - fundPaidCash + compCash;
+  const shamBalance = paidSham - payoutSham + walletDelta.shamcash + fundingSham + platformSham - chargeFundedSham - withdrawSham - fundPaidSham + compSham;
+  const platformBalance = walletDelta.platform + fundingPlatform + platformPlatform - chargeFundedPlatform - withdrawPlatform + paidPlatform - payoutPlatform + compPlatform;
+  const _ob = data.openingBalances || {};
+  return { cashBalance: cashBalance + (Number(_ob.cash)||0), shamBalance: shamBalance + (Number(_ob.shamcash)||0), platformBalance: platformBalance + (Number(_ob.platform)||0) };
+}
+function getTotalTransferFee(){
+  return (data.walletTransfers||[]).reduce((s,x)=> s + transferFee(x), 0);
+}
+function fundingPaymentsOf(x){
+  if(x.destination!=='platform') return [];
+  if(Array.isArray(x.payments)) return x.payments;
+  if(x.paySource==='cash' || x.paySource==='shamcash') return [{ amount: x.paidAmount!==undefined ? x.paidAmount : x.amount, method: x.paySource }];
+  return [];
+}
+function fundingPaidTotal(x){ return fundingPaymentsOf(x).reduce((s,pm)=>s+pm.amount,0); }
+function fundingOwed(x){
+  if(x.destination!=='platform' || x.paidAmount===undefined) return 0;
+  return Math.max(0, x.paidAmount - fundingPaidTotal(x));
+}
+function getTotalFundingOwed(){
+  return (data.walletFunding||[]).reduce((s,x)=> s + fundingOwed(x), 0);
+}
+function getTotalFundingFee(){
+  return (data.walletFunding||[]).reduce((s,x)=> s + (x.fee||0), 0);
+}
+function getRecognizedFundingFee(){
+  return (data.walletFunding||[]).reduce((s,x)=>{
+    if(!x.fee || !x.paidAmount) return s;
+    return s + x.fee * Math.min(1, fundingPaidTotal(x) / x.paidAmount);
+  }, 0);
+}
+function cashierName(id){
+  const c = data.cashiers.find(c=>c.id===id);
+  return c ? c.name : '—';
+}
+function chargeStatusLabel(t){
+  if(t.status==='paid') return 'مسدد';
+  if(t.status==='partial') return 'مسدد جزئياً';
+  return 'معلّق';
+}
+function localDateStr(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function localMonthStr(d){
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+/* ===== نهاية دوال الحساب ===== */
+
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function fmt(n){n=Math.round(Number(n)||0);return n.toLocaleString("en-US");}
+function negCls(n){return n<0?" neg":"";}
+function homeHTML(){
+var mStr=localMonthStr(new Date());
+var mt=monthTotals(mStr);
+var tot=computeTotals();
+var w=getWalletTotals();
+var h="";
+h+='<div class="hero"><p class="lbl">دخل شهر '+mStr+'</p>';
+h+='<p class="big mono'+negCls(mt.income)+'">'+fmt(mt.income)+' <small>ل.س</small></p>';
+h+='<div class="trio">';
+h+='<div><span>الشحن</span><b class="mono">'+fmt(mt.charged)+'</b></div>';
+h+='<div><span>الممرّر</span><b class="mono">'+fmt(mt.payouts)+'</b></div>';
+h+='<div><span>المعلّق (تراكمي)</span><b class="mono">'+fmt(tot.pendingCharges)+'</b></div>';
+h+='</div></div>';
+h+='<div class="wal">';
+h+='<div class="wc"><span>كاش</span><b class="mono'+negCls(w.cashBalance)+'">'+fmt(w.cashBalance)+'</b></div>';
+h+='<div class="wc"><span>شام كاش</span><b class="mono'+negCls(w.shamBalance)+'">'+fmt(w.shamBalance)+'</b></div>';
+h+='<div class="wc"><span>المنصة</span><b class="mono'+negCls(w.platformBalance)+'">'+fmt(w.platformBalance)+'</b></div>';
+h+='</div>';
+h+='<p class="sec">آخر العمليات</p>';
+var tx=data.transactions.slice(-8).reverse();
+if(!tx.length){h+='<p class="empty">لا توجد عمليات بعد.</p>';}
+for(var i=0;i<tx.length;i++){
+var t=tx[i];
+var kind=t.opening?"رصيد افتتاحي":(t.type==="charge"?"شحن":(t.type==="payout"?"تمرير ربح":"عملية"));
+var chip="";
+if(t.type==="charge"&&!t.opening){
+var sc=t.status==="paid"?"paid":(t.status==="partial"?"partial":"pending");
+chip='<span class="chip '+sc+'">'+chargeStatusLabel(t)+'</span>';
+}
+h+='<div class="row"><div class="m"><p class="n">'+kind+' · '+esc(cashierName(t.cashierId))+chip+'</p>';
+h+='<p class="s">'+esc(t.date||"")+(t.time?' · '+esc(t.time):'')+'</p></div>';
+h+='<div class="a mono">'+fmt(t.amount)+'</div></div>';
+}
+return h;
+}
+var REF={
+cash:965000,sham:0,platform:4270000,pending:6050000,owed:2040000,tfee:205000,ffee:180000,
+sep:{charged:27765000,payouts:19750000,playerPayouts:12050000,pending:0,income:8015000},
+oct:{charged:19640000,payouts:2000000,playerPayouts:2000000,pending:6050000,income:17640000},
+counts:{transactions:134,walletFunding:18,platformPayins:9,walletTransfers:17,externalWithdrawals:8,reconciliations:7,cashiers:3}
+};
+function checkRows(){
+var w=getWalletTotals();
+var tot=computeTotals();
+var sep=monthTotals("2026-09");
+var oct=monthTotals("2026-10");
+var R=[];
+R.push(["كاش",w.cashBalance,REF.cash]);
+R.push(["شام كاش",w.shamBalance,REF.sham]);
+R.push(["المنصة",w.platformBalance,REF.platform]);
+R.push(["الديون المعلقة",tot.pendingCharges,REF.pending]);
+var cp=0;
+for(var q=0;q<data.cashiers.length;q++){
+for(var z=0;z<data.transactions.length;z++){
+var tz=data.transactions[z];
+if(tz.cashierId===data.cashiers[q].id&&tz.type==="charge"){cp+=remainingOf(tz);}
+}
+}
+R.push(["معلّق الكاشيرات (مجموع القائمة)",cp,REF.pending]);
+R.push(["مستحق التمويل",getTotalFundingOwed(),REF.owed]);
+R.push(["عمولة التحويلات",getTotalTransferFee(),REF.tfee]);
+R.push(["عمولة التمويل",getTotalFundingFee(),REF.ffee]);
+var ms=[["سبتمبر",sep,REF.sep],["أكتوبر",oct,REF.oct]];
+for(var i=0;i<ms.length;i++){
+var n=ms[i][0],a=ms[i][1],e=ms[i][2];
+R.push([n+": شحن",a.charged,e.charged]);
+R.push([n+": أرباح ممررة",a.payouts,e.payouts]);
+R.push([n+": منها لاعبين",a.playerPayouts,e.playerPayouts]);
+R.push([n+": معلق",a.pending,e.pending]);
+R.push([n+": دخل",a.income,e.income]);
+}
+var names=[["transactions","العمليات"],["walletFunding","التمويل"],["platformPayins","دفعات المنصة"],["walletTransfers","التحويلات"],["externalWithdrawals","السحوبات"],["reconciliations","التسويات"],["cashiers","الكاشيرات"]];
+for(var j=0;j<names.length;j++){
+R.push(["عدد "+names[j][1],(data[names[j][0]]||[]).length,REF.counts[names[j][0]]]);
+}
+return R;
+}
+function checkHTML(){
+var R=checkRows();
+var bad=0;
+var rows="";
+for(var i=0;i<R.length;i++){
+var ok=Math.round(R[i][1])===R[i][2];
+if(!ok){bad++;}
+rows+='<div class="ck"><span>'+R[i][0]+'</span><span class="v mono '+(ok?'good':'bad')+'">'+(ok?'✓ ':'✗ ')+fmt(R[i][1])+(ok?'':' (المرجع '+fmt(R[i][2])+')')+'</span></div>';
+}
+var head=bad===0?'<p class="verdict" style="color:var(--ok)">كل الأرقام ('+R.length+') مطابقة للمرجع ✓</p>':'<p class="verdict" style="color:var(--err)">يوجد '+bad+' رقم مختلف من '+R.length+'</p>';
+return head+rows+'<p class="sub" style="font-size:11px;margin-top:10px">المرجع: نسخة 2026-10-10. إذا أضفت عمليات في التطبيق القديم بعدها فسيظهر اختلاف متوقع حتى نعيد الاستيراد.</p>';
+}
+function cashHTML(){
+var cur=localMonthStr(new Date());
+var cs=data.cashiers.slice();
+cs.sort(function(a,b){return (a.status==="suspended"?1:0)-(b.status==="suspended"?1:0);});
+if(!cs.length){return '<p class="empty">ما في كاشيرات بعد.</p>';}
+var h="";
+for(var i=0;i<cs.length;i++){
+var c=cs[i];
+var paid=0,pending=0;
+for(var j=0;j<data.transactions.length;j++){
+var t=data.transactions[j];
+if(t.cashierId!==c.id||t.type!=="charge"){continue;}
+pending+=remainingOf(t);
+if(!t.opening&&t.date&&t.date.indexOf(cur)===0){paid+=t.amount;}
+}
+var sus=c.status==="suspended";
+h+='<div class="row" data-id="'+esc(c.id)+'" onclick="openCashier(this.dataset.id)" style="cursor:pointer'+(sus?';opacity:.6':'')+'"><div class="m"><p class="n">'+esc(c.name)+(sus?'<span class="chip pending">موقوف</span>':'')+'</p>';
+h+='<p class="s">'+(pending>0?'<span class="chip pending" style="margin-right:0">معلّق '+fmt(pending)+'</span>':'<span class="chip paid" style="margin-right:0">لا يوجد معلّق</span>')+(c.commissionRate?' · عمولة '+esc(c.commissionRate)+'%':'')+'</p></div>';
+h+='<div class="a mono">'+fmt(paid)+'</div></div>';
+}
+h+='<p class="sub tiny">الرقم على اليسار = شحن هذا الشهر</p>';
+return h;
+}
+function renderCash(){
+if(!data){return;}
+document.getElementById("cash-body").innerHTML=cashHTML();
+}
+function openAddCashier(){
+if(!data){toast("البيانات لم تُحمَّل بعد");return;}
+document.getElementById("c-name").value="";
+document.getElementById("c-rate").value="";
+msg("c-msg","");
+show("v-addcash");
+}
+function newId(){return "id"+Date.now()+Math.floor(Math.random()*1000);}
+async function saveCashier(){
+var b=document.getElementById("c-btn");
+if(b.disabled){return;}
+var name=val("c-name");
+if(!name){msg("c-msg","أدخل اسم الكاشير");return;}
+if(!data){msg("c-msg","البيانات لم تُحمَّل بعد");return;}
+var low=name.toLowerCase();
+for(var i=0;i<data.cashiers.length;i++){
+if(String(data.cashiers[i].name).trim().toLowerCase()===low){msg("c-msg","في كاشير بنفس الاسم أصلاً");return;}
+}
+var rate=Number(val("c-rate"))||0;
+b.disabled=true;
+b.textContent="جارٍ الحفظ...";
+msg("c-msg","");
+try{
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){sessionExpired();return;}
+if(r.state!=="ok"){msg("c-msg","تعذّر الاتصال. حاول مرة أخرى.");return;}
+var tok=r.sess.s.access_token;
+var id=newId();
+var doc={id:id,name:name,createdAt:localDateStr(new Date()),commissionRate:rate};
+var res=await fetch(SB+"/rest/v1/cashiers",{method:"POST",headers:{"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({id:id,doc:doc})});
+if(res.status!==201&&res.status!==200&&res.status!==204){
+var d="";
+try{d=await res.text();}catch(e){}
+if(res.status===401){sessionExpired();return;}
+msg("c-msg","تعذّر الحفظ ("+res.status+") "+d.slice(0,160));
+return;
+}
+var logOk=false;
+try{
+var lr=await fetch(SB+"/rest/v1/activity_log",{method:"POST",headers:{"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({doc:{id:newId(),ts:new Date().toISOString(),action:"إضافة كاشير",detail:name+(rate?" — عمولة "+rate+"%":"")}})});
+logOk=(lr.status===201||lr.status===200||lr.status===204);
+}catch(e){}
+await loadData();
+show("v-cash");
+toast(logOk?"تمت إضافة الكاشير":"أُضيف الكاشير (تعذّر تسجيل النشاط)");
+}catch(e){
+msg("c-msg","تعذّر الاتصال بالخادم. حاول مرة أخرى.");
+}finally{
+b.disabled=false;
+b.textContent="حفظ";
+}
+}
+var curCashier=null;
+function cashierById(id){
+for(var i=0;i<data.cashiers.length;i++){if(data.cashiers[i].id===id){return data.cashiers[i];}}
+return null;
+}
+function cashierHTML(c){
+var cur=localMonthStr(new Date());
+var month=0,pending=0,count=0;
+for(var j=0;j<data.transactions.length;j++){
+var t=data.transactions[j];
+if(t.cashierId!==c.id){continue;}
+count++;
+if(t.type!=="charge"){continue;}
+pending+=remainingOf(t);
+if(!t.opening&&t.date&&t.date.indexOf(cur)===0){month+=t.amount;}
+}
+var sus=c.status==="suspended";
+var h='<p class="s" style="margin:-8px 0 14px">'+(sus?'<span class="chip pending" style="margin-right:0">موقوف</span>':'<span class="chip paid" style="margin-right:0">فعّال</span>')+(c.createdAt?' · منذ '+esc(c.createdAt):'')+'</p>';
+h+='<div class="trio" style="margin-bottom:16px">';
+h+='<div><span>شحن هذا الشهر</span><b class="mono">'+fmt(month)+'</b></div>';
+h+='<div><span>معلّق</span><b class="mono'+(pending>0?' neg':'')+'">'+fmt(pending)+'</b></div>';
+h+='<div><span>عدد العمليات</span><b class="mono">'+count+'</b></div>';
+h+='</div>';
+return h;
+}
+function renderCashier(){
+var c=cashierById(curCashier);
+if(!c){show("v-cash");return;}
+document.getElementById("cd-title").textContent=c.name;
+document.getElementById("cd-body").innerHTML=cashierHTML(c);
+document.getElementById("cd-rate").value=c.commissionRate||0;
+document.getElementById("cd-sus").textContent=(c.status==="suspended")?"إعادة تفعيل الكاشير":"إيقاف الكاشير";
+msg("cd-msg","");
+}
+function openCashier(id){
+if(!data){toast("البيانات لم تُحمَّل بعد");return;}
+if(!cashierById(id)){return;}
+curCashier=id;
+renderCashier();
+show("v-cashier");
+}
+async function saveCommission(){
+var b=document.getElementById("cd-save");
+if(b.disabled){return;}
+var c=cashierById(curCashier);
+if(!c){return;}
+var raw=val("cd-rate");
+var rate=raw===""?0:Number(raw);
+if(!isFinite(rate)||rate<0||rate>100){msg("cd-msg","أدخل نسبة بين 0 و 100");return;}
+if(rate===(Number(c.commissionRate)||0)){msg("cd-msg","النسبة لم تتغير");return;}
+b.disabled=true;
+b.textContent="جارٍ الحفظ...";
+msg("cd-msg","");
+try{
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){sessionExpired();return;}
+if(r.state!=="ok"){msg("cd-msg","تعذّر الاتصال. حاول مرة أخرى.");return;}
+var tok=r.sess.s.access_token;
+var nd=JSON.parse(JSON.stringify(c));
+nd.commissionRate=rate;
+var res=await fetch(SB+"/rest/v1/cashiers?id=eq."+encodeURIComponent(c.id),{method:"PATCH",headers:{"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify({doc:nd})});
+var j=[];
+var txt="";
+if(res.status===200){j=await res.json();}else{try{txt=await res.text();}catch(e){}}
+if(res.status===401){sessionExpired();return;}
+if(res.status!==200||!j.length){msg("cd-msg","تعذّر الحفظ ("+res.status+(res.status===200?" لم يتغير أي صف":"")+") "+txt.slice(0,140));return;}
+c.commissionRate=rate;
+var logOk=false;
+try{
+var lr=await fetch(SB+"/rest/v1/activity_log",{method:"POST",headers:{"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({doc:{id:newId(),ts:new Date().toISOString(),action:"تحديث نسبة عمولة",detail:c.name+" → "+rate+"%"}})});
+logOk=(lr.status===201||lr.status===200||lr.status===204);
+}catch(e2){}
+await loadData();
+renderCashier();
+toast(logOk?"تم تحديث نسبة العمولة":"حُفظت النسبة (تعذّر تسجيل النشاط)");
+}catch(e){
+msg("cd-msg","تعذّر الاتصال بالخادم. حاول مرة أخرى.");
+}finally{
+b.disabled=false;
+b.textContent="حفظ العمولة";
+}
+}
+async function toggleSuspend(){
+var b=document.getElementById("cd-sus");
+if(b.disabled){return;}
+var c=cashierById(curCashier);
+if(!c){return;}
+var toSus=c.status!=="suspended";
+var label=b.textContent;
+b.disabled=true;
+b.textContent="جارٍ الحفظ...";
+msg("cd-msg","");
+try{
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){sessionExpired();return;}
+if(r.state!=="ok"){msg("cd-msg","تعذّر الاتصال. حاول مرة أخرى.");return;}
+var tok=r.sess.s.access_token;
+var nd=JSON.parse(JSON.stringify(c));
+nd.status=toSus?"suspended":"active";
+var res=await fetch(SB+"/rest/v1/cashiers?id=eq."+encodeURIComponent(c.id),{method:"PATCH",headers:{"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify({doc:nd})});
+var j=[];
+var txt="";
+if(res.status===200){j=await res.json();}else{try{txt=await res.text();}catch(e){}}
+if(res.status===401){sessionExpired();return;}
+if(res.status!==200||!j.length){msg("cd-msg","تعذّر الحفظ ("+res.status+(res.status===200?" لم يتغير أي صف":"")+") "+txt.slice(0,140));return;}
+c.status=nd.status;
+var logOk=false;
+try{
+var lr=await fetch(SB+"/rest/v1/activity_log",{method:"POST",headers:{"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({doc:{id:newId(),ts:new Date().toISOString(),action:toSus?"إيقاف كاشير":"إعادة تفعيل كاشير",detail:c.name}})});
+logOk=(lr.status===201||lr.status===200||lr.status===204);
+}catch(e2){}
+await loadData();
+renderCashier();
+toast(toSus?"تم إيقاف الكاشير — تاريخه محفوظ":"تم تفعيل الكاشير");
+}catch(e){
+msg("cd-msg","تعذّر الاتصال بالخادم. حاول مرة أخرى.");
+}finally{
+b.disabled=false;
+if(!cashierById(curCashier)){b.textContent=label;}else{b.textContent=(cashierById(curCashier).status==="suspended")?"إعادة تفعيل الكاشير":"إيقاف الكاشير";}
+}
+}
+function askYesNo(text,cb){
+if(inTg&&tg.showConfirm){tg.showConfirm(text,function(ok){cb(!!ok);});return;}
+cb(window.confirm(text));
+}
+function deleteCashier(){
+var b=document.getElementById("cd-del");
+if(b.disabled){return;}
+var c=cashierById(curCashier);
+if(!c){return;}
+var locked={};
+var lm=data.lockedMonths||[];
+for(var l=0;l<lm.length;l++){locked[lm[l]]=1;}
+var txs=[];
+var smart=[];
+for(var i=0;i<data.transactions.length;i++){
+var t=data.transactions[i];
+if(t.cashierId!==c.id){continue;}
+txs.push(t);
+if(locked[(t.date||"").slice(0,7)]){msg("cd-msg","عند هذا الكاشير عمليات ضمن شهر مقفول. افتح القفل أولاً.");return;}
+if(t.smartId){smart.push(t.smartId);}
+}
+var pays=[];
+var all=data.platformPayins||[];
+for(var k=0;k<all.length;k++){
+if(all[k].smartId&&smart.indexOf(all[k].smartId)>=0){pays.push(all[k]);}
+}
+var text=txs.length>0?("هذا الكاشير عنده "+txs.length+" عملية مسجّلة وستُحذف كلها معه. متأكد من حذف "+c.name+"؟"):("متأكد من حذف الكاشير "+c.name+"؟");
+askYesNo(text,function(ok){if(ok){doDeleteCashier(c,txs,pays);}});
+}
+async function doDeleteCashier(c,txs,pays){
+var b=document.getElementById("cd-del");
+if(b.disabled){return;}
+b.disabled=true;
+b.textContent="جارٍ الحذف...";
+msg("cd-msg","");
+var stage="العمليات";
+try{
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){sessionExpired();return;}
+if(r.state!=="ok"){msg("cd-msg","تعذّر الاتصال. حاول مرة أخرى.");return;}
+var tok=r.sess.s.access_token;
+var HR={"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=representation"};
+var stamp=JSON.stringify({deleted_at:new Date().toISOString()});
+if(txs.length){
+var tr=await fetch(SB+"/rest/v1/transactions?"+encodeURIComponent("doc->>cashierId")+"=eq."+encodeURIComponent(c.id)+"&deleted_at=is.null",{method:"PATCH",headers:HR,body:stamp});
+var tj=tr.status===200?await tr.json():[];
+if(tr.status!==200||tj.length!==txs.length){throw new Error("transactions "+tr.status+" "+tj.length+"/"+txs.length);}
+}
+stage="دفعات المنصة";
+for(var i=0;i<pays.length;i++){
+var pr=await fetch(SB+"/rest/v1/platform_payins?"+encodeURIComponent("doc->>smartId")+"=eq."+encodeURIComponent(pays[i].smartId)+"&deleted_at=is.null",{method:"PATCH",headers:HR,body:stamp});
+var pj=pr.status===200?await pr.json():[];
+if(pr.status!==200||!pj.length){throw new Error("platform_payins "+pr.status);}
+}
+stage="الكاشير";
+var cr=await fetch(SB+"/rest/v1/cashiers?id=eq."+encodeURIComponent(c.id)+"&deleted_at=is.null",{method:"PATCH",headers:HR,body:stamp});
+var cj=cr.status===200?await cr.json():[];
+if(cr.status!==200||!cj.length){throw new Error("cashiers "+cr.status);}
+var logOk=false;
+try{
+var lr=await fetch(SB+"/rest/v1/activity_log",{method:"POST",headers:{"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({doc:{id:newId(),ts:new Date().toISOString(),action:"حذف كاشير",detail:c.name+(txs.length>0?" — مع "+txs.length+" عملية":"")}})});
+logOk=(lr.status===201||lr.status===200||lr.status===204);
+}catch(e2){}
+curCashier=null;
+await loadData();
+show("v-cash");
+toast(logOk?"تم حذف الكاشير":"حُذف الكاشير (تعذّر تسجيل النشاط)");
+}catch(err){
+var m=(err&&err.message)?err.message:"خطأ";
+msg("cd-msg","تعذّر الحذف في مرحلة "+stage+" ("+m+"). أعد المحاولة، ما حُذف سابقاً لن يتكرر.");
+await loadData();
+}finally{
+b.disabled=false;
+b.textContent="حذف الكاشير";
+}
+}
+var ob={step:0,date:"",debts:[],wallets:{cash:"",shamcash:"",platform:""},existing:false};
+function openTxOf(cid){
+for(var i=0;i<data.transactions.length;i++){
+var t=data.transactions[i];
+if(t.opening&&t.cashierId===cid){return t;}
+}
+return null;
+}
+function uniqId(used){
+var id=newId();
+while(used[id]){id=newId();}
+used[id]=1;
+return id;
+}
+function openOpening(){
+if(!data){toast("البيانات لم تُحمَّل بعد");return;}
+var ob0=data.openingBalances||null;
+var dates=[];
+var debts=[];
+for(var i=0;i<data.transactions.length;i++){
+var t=data.transactions[i];
+if(t.opening){debts.push({cashierId:t.cashierId,name:cashierName(t.cashierId),amount:t.amount,paid:paidAmountOf(t)});}
+else if(t.date){dates.push(t.date);}
+}
+dates.sort();
+var today=localDateStr(new Date());
+var def=(dates[0]&&dates[0]<today)?dates[0]:today;
+ob={step:0,date:(ob0&&ob0.date)||def,debts:debts,existing:!!ob0||debts.length>0,
+wallets:{cash:ob0?(ob0.cash||""):"",shamcash:ob0?(ob0.shamcash||""):"",platform:ob0?(ob0.platform||""):""}};
+obRender();
+show("v-open");
+}
+function obCollect(){
+if(ob.step===0){
+var d=document.getElementById("ob-date");
+if(d&&d.value){ob.date=d.value;}
+for(var i=0;i<ob.debts.length;i++){
+var el=document.getElementById("ob-d-"+i);
+if(el){ob.debts[i].amount=Math.max(0,Number(el.value)||0);}
+}
+}else{
+var ks=["cash","shamcash","platform"];
+for(var k=0;k<ks.length;k++){
+var w=document.getElementById("ob-w-"+ks[k]);
+if(w){ob.wallets[ks[k]]=w.value;}
+}
+}
+}
+function obAddDebt(){
+obCollect();
+var name=val("ob-name");
+var amount=Number(document.getElementById("ob-amt").value);
+if(!name){msg("ob-msg","أدخل اسم الكاشير");return;}
+if(!amount||amount<=0){msg("ob-msg","أدخل مبلغ الدين");return;}
+var low=name.toLowerCase();
+var c=null;
+for(var i=0;i<data.cashiers.length;i++){
+if(String(data.cashiers[i].name).trim().toLowerCase()===low){c=data.cashiers[i];break;}
+}
+for(var j=0;j<ob.debts.length;j++){
+var d=ob.debts[j];
+if((c&&d.cashierId===c.id)||(!d.cashierId&&d.name.trim().toLowerCase()===low)){msg("ob-msg","الاسم موجود، عدّل مبلغه من القائمة");return;}
+}
+ob.debts.push({cashierId:c?c.id:null,name:c?c.name:name,amount:amount,paid:0});
+obRender();
+}
+function obRemoveDebt(i){
+obCollect();
+var d=ob.debts[i];
+if(!d){return;}
+if(d.paid>0){msg("ob-msg","هذا الدين انسدد منه جزء، لا يمكن حذفه");return;}
+ob.debts.splice(i,1);
+obRender();
+}
+function obSums(){
+var debts=0;
+for(var i=0;i<ob.debts.length;i++){
+var d=ob.debts[i];
+if(d.amount>0){debts+=Math.max(0,d.amount-(d.paid||0));}
+}
+var w=ob.wallets;
+var wal=(Number(w.cash)||0)+(Number(w.shamcash)||0)+(Number(w.platform)||0);
+return {debts:debts,wallets:wal,total:debts+wal};
+}
+function obValidate(){
+if(ob.date>localDateStr(new Date())){return "التاريخ لا يجوز أن يكون في المستقبل";}
+var keep={};
+for(var i=0;i<ob.debts.length;i++){
+var d=ob.debts[i];
+if(!(d.amount>0)){continue;}
+if(d.cashierId){
+keep[d.cashierId]=1;
+var ot=openTxOf(d.cashierId);
+if(ot&&d.amount<paidAmountOf(ot)){return "دين "+d.name+" أقل من المبلغ الذي انسدد منه ("+fmt(paidAmountOf(ot))+")";}
+}
+}
+for(var j=0;j<data.transactions.length;j++){
+var t=data.transactions[j];
+if(t.opening&&!keep[t.cashierId]&&paidAmountOf(t)>0){return "دين "+cashierName(t.cashierId)+" انسدد منه جزء، لا يمكن إزالته";}
+}
+return "";
+}
+function obSummary(){
+var el=document.getElementById("ob-sum");
+if(!el){return;}
+obCollect();
+var t=obSums();
+el.innerHTML='<div class="row"><span>ديون معلّقة</span><span class="a mono">'+fmt(t.debts)+'</span></div><div class="row"><span>أرصدة المحافظ</span><span class="a mono">'+fmt(t.wallets)+'</span></div><div class="row"><b>إجمالي رأس المال</b><b class="a mono">'+fmt(t.total)+'</b></div>';
+}
+function obRender(){
+msg("ob-msg","");
+var body=document.getElementById("ob-body");
+var h="";
+if(ob.step===0){
+document.getElementById("ob-step").textContent="1 من 2 · الديون السابقة";
+h+='<p class="sub" style="margin-bottom:14px">سجّل كل كاشير عليه دين قبل بدء استخدام الدفتر. لا يُخصم من أي محفظة ولا يُحسب في دخل أول شهر. إذا كان الاسم غير موجود يُنشأ كاشير جديد بعمولة 0.</p>';
+h+='<div class="f"><label>تاريخ البداية</label><input id="ob-date" type="date" value="'+esc(ob.date)+'" max="'+localDateStr(new Date())+'"></div>';
+if(!ob.debts.length){h+='<p class="empty">لم تُضف أي دين حتى الآن.</p>';}
+for(var i=0;i<ob.debts.length;i++){
+var d=ob.debts[i];
+h+='<div class="row"><div class="m"><p class="n">'+esc(d.name)+(d.cashierId?'':'<span class="chip partial">جديد</span>')+'</p>'+(d.paid>0?'<p class="s">انسدد منه '+fmt(d.paid)+'</p>':'')+'</div>';
+h+='<input id="ob-d-'+i+'" class="mono" type="number" inputmode="decimal" value="'+esc(d.amount)+'" style="width:120px;flex:none">';
+h+='<button type="button" onclick="obRemoveDebt('+i+')" style="background:none;border:0;color:var(--err);font-size:18px;padding:4px 6px;cursor:pointer" aria-label="حذف">✕</button></div>';
+}
+var opts="";
+for(var k=0;k<data.cashiers.length;k++){opts+='<option value="'+esc(data.cashiers[k].name)+'"></option>';}
+h+='<div style="display:flex;gap:8px;margin-top:12px"><input list="ob-names" id="ob-name" placeholder="اسم الكاشير" autocomplete="off" style="flex:1.4;min-width:0;direction:rtl;text-align:right"><input id="ob-amt" class="mono" type="number" inputmode="decimal" placeholder="المبلغ" style="flex:1;min-width:0"></div>';
+h+='<datalist id="ob-names">'+opts+'</datalist>';
+h+='<button class="btn line" style="margin:10px 0 14px" onclick="obAddDebt()">➕ إضافة</button>';
+document.getElementById("ob-next").textContent="التالي";
+document.getElementById("ob-prev").style.display="none";
+}else{
+document.getElementById("ob-step").textContent="2 من 2 · أرصدة المحافظ";
+h+='<p class="sub" style="margin-bottom:14px">اكتب الرصيد الفعلي الموجود الآن في كل محفظة. يُسجَّل كما هو.</p>';
+var w=ob.wallets;
+h+='<div class="f"><label>الكاش</label><input id="ob-w-cash" class="mono" type="number" inputmode="decimal" placeholder="0" value="'+esc(w.cash)+'" oninput="obSummary()"></div>';
+h+='<div class="f"><label>شام كاش</label><input id="ob-w-shamcash" class="mono" type="number" inputmode="decimal" placeholder="0" value="'+esc(w.shamcash)+'" oninput="obSummary()"></div>';
+h+='<div class="f"><label>المنصة</label><input id="ob-w-platform" class="mono" type="number" inputmode="decimal" placeholder="0" value="'+esc(w.platform)+'" oninput="obSummary()"></div>';
+h+='<div id="ob-sum"></div>';
+if(ob.existing){h+='<p class="msg" style="color:var(--gold)">⚠️ الرصيد الافتتاحي مسجّل مسبقاً، وتعديله يغيّر أرصدة المحافظ الحالية.</p>';}
+document.getElementById("ob-next").textContent="حفظ";
+document.getElementById("ob-prev").style.display="block";
+}
+body.innerHTML=h;
+if(ob.step===1){obSummary();}
+}
+function obPrev(){
+obCollect();
+if(ob.step>0){ob.step--;obRender();}
+}
+function obNext(){
+obCollect();
+if(ob.step===0){
+var e=obValidate();
+if(e){msg("ob-msg",e);return;}
+ob.step=1;
+obRender();
+window.scrollTo(0,0);
+}else{obSave();}
+}
+function obReplaceLocal(list,t){
+for(var i=0;i<list.length;i++){
+if(list[i].id===t.id){list[i]=t;return;}
+}
+list.push(t);
+}
+async function obSave(){
+var b=document.getElementById("ob-next");
+if(b.disabled){return;}
+obCollect();
+var e=obValidate();
+if(e){msg("ob-msg",e);return;}
+var w={cash:Math.max(0,Number(ob.wallets.cash)||0),shamcash:Math.max(0,Number(ob.wallets.shamcash)||0),platform:Math.max(0,Number(ob.wallets.platform)||0)};
+var today=localDateStr(new Date());
+var date=ob.date||today;
+var used={};
+for(var u0=0;u0<data.cashiers.length;u0++){used[data.cashiers[u0].id]=1;}
+for(var u1=0;u1<data.transactions.length;u1++){used[data.transactions[u1].id]=1;}
+var rows=[];
+for(var r0=0;r0<ob.debts.length;r0++){if(ob.debts[r0].amount>0){rows.push(ob.debts[r0]);}}
+var newCs=[];
+var ups=[];
+var applied={};
+for(var i=0;i<rows.length;i++){
+var d=rows[i];
+var cid=d.cashierId;
+if(!cid){
+var c={id:uniqId(used),name:d.name,createdAt:today,commissionRate:0};
+newCs.push(c);
+cid=c.id;
+d.cashierId=cid;
+}
+applied[cid]=1;
+var ot=openTxOf(cid);
+if(ot){
+if(ot.amount===d.amount&&ot.date===date){continue;}
+var t=JSON.parse(JSON.stringify(ot));
+t.amount=d.amount;
+t.date=date;
+var paid=paidAmountOf(ot);
+t.status=paid>=d.amount?"paid":(paid>0?"partial":"pending");
+ups.push(t);
+}else{
+ups.push({id:uniqId(used),type:"charge",cashierId:cid,amount:d.amount,date:date,time:"00:00",note:"دين سابق (رصيد افتتاحي)",method:"cash",status:"pending",fundingSource:"none",opening:true});
+}
+}
+var created=newCs.length;
+var dels=[];
+for(var j=0;j<data.transactions.length;j++){
+var x=data.transactions[j];
+if(x.opening&&!applied[x.cashierId]){dels.push(x.id);}
+}
+var sums=obSums();
+b.disabled=true;
+b.textContent="جارٍ الحفظ...";
+msg("ob-msg","");
+var stage="الكاشيرات";
+try{
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){sessionExpired();return;}
+if(r.state!=="ok"){msg("ob-msg","تعذّر الاتصال. حاول مرة أخرى.");return;}
+var tok=r.sess.s.access_token;
+var H={"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json"};
+var HM={"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=minimal"};
+var HU={"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=minimal"};
+if(newCs.length){
+var cr=await fetch(SB+"/rest/v1/cashiers",{method:"POST",headers:HM,body:JSON.stringify(newCs.map(function(c){return {id:c.id,doc:c};}))});
+if(cr.status!==201&&cr.status!==200&&cr.status!==204){throw new Error("cashiers "+cr.status+" "+(await cr.text()).slice(0,140));}
+for(var n=0;n<newCs.length;n++){data.cashiers.push(newCs[n]);}
+newCs=[];
+}
+stage="الديون";
+if(ups.length){
+var u=await fetch(SB+"/rest/v1/transactions?on_conflict=user_id,id",{method:"POST",headers:HU,body:JSON.stringify(ups.map(function(t){return {id:t.id,doc:t};}))});
+if(u.status!==201&&u.status!==200&&u.status!==204){throw new Error("transactions "+u.status+" "+(await u.text()).slice(0,140));}
+for(var q=0;q<ups.length;q++){obReplaceLocal(data.transactions,ups[q]);}
+}
+for(var k=0;k<dels.length;k++){
+var dr=await fetch(SB+"/rest/v1/transactions?id=eq."+encodeURIComponent(dels[k]),{method:"PATCH",headers:{"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify({deleted_at:new Date().toISOString()})});
+var dj=dr.status===200?await dr.json():[];
+if(dr.status!==200||!dj.length){throw new Error("delete "+dr.status);}
+data.transactions=data.transactions.filter(function(z){return z.id!==dels[k];});
+}
+stage="الأرصدة";
+var gr=await fetch(SB+"/rest/v1/settings?select=user_id,doc",{headers:H});
+if(gr.status!==200){throw new Error("settings "+gr.status);}
+var gj=await gr.json();
+var cur=(gj.length&&gj[0].doc)?gj[0].doc:{};
+var nd={};
+for(var key in cur){nd[key]=cur[key];}
+nd.openingBalances={date:date,cash:w.cash,shamcash:w.shamcash,platform:w.platform};
+var sres;
+if(gj.length){
+sres=await fetch(SB+"/rest/v1/settings?user_id=eq."+encodeURIComponent(gj[0].user_id),{method:"PATCH",headers:{"apikey":ANON,"Authorization":"Bearer "+tok,"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify({doc:nd})});
+var sj2=sres.status===200?await sres.json():[];
+if(sres.status!==200||!sj2.length){throw new Error("settings save "+sres.status);}
+}else{
+sres=await fetch(SB+"/rest/v1/settings",{method:"POST",headers:HM,body:JSON.stringify({doc:nd})});
+if(sres.status!==201&&sres.status!==200&&sres.status!==204){throw new Error("settings insert "+sres.status);}
+}
+var logOk=false;
+try{
+var lr=await fetch(SB+"/rest/v1/activity_log",{method:"POST",headers:HM,body:JSON.stringify({doc:{id:newId(),ts:new Date().toISOString(),action:"رصيد افتتاحي",detail:"ديون "+fmt(sums.debts)+" + محافظ "+fmt(sums.wallets)+" = "+fmt(sums.total)+(created?" — أُضيف "+created+" كاشير جديد":"")}})});
+logOk=(lr.status===201||lr.status===200||lr.status===204);
+}catch(e2){}
+await loadData();
+show("v-cash");
+toast(logOk?"تم حفظ الرصيد الافتتاحي":"حُفظ الرصيد (تعذّر تسجيل النشاط)");
+}catch(err){
+var m=(err&&err.message)?err.message:"خطأ";
+msg("ob-msg",stage==="الأرصدة"?"حُفظت الديون لكن تعذّر حفظ الأرصدة ("+m+"). اضغط حفظ مرة أخرى.":"تعذّر الحفظ في مرحلة "+stage+" ("+m+"). ما حُفظ سابقاً لن يتكرر عند إعادة المحاولة.");
+}finally{
+b.disabled=false;
+b.textContent="حفظ";
+}
+}
+function toast(t){
+var el=document.getElementById("toast");
+el.textContent=t;
+el.style.display="block";
+setTimeout(function(){el.style.display="none";},1800);
+}
+function navTo(x){
+if(x==="home"){show("v-home");return;}
+if(x==="cash"){
+if(!data){toast("البيانات لم تُحمَّل بعد");return;}
+renderCash();
+show("v-cash");
+return;
+}
+if(x==="check"){
+if(!data){toast("البيانات لم تُحمَّل بعد");return;}
+document.getElementById("ck-body").innerHTML=checkHTML();
+show("v-check");
+return;
+}
+toast("قريباً");
+}
+function applyTheme(){
+var t="dark";
+if(inTg&&tg.colorScheme){t=tg.colorScheme;}
+else if(window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches){t="light";}
+document.documentElement.setAttribute("data-theme",t);
+}
+applyTheme();
+if(inTg&&tg.onEvent){tg.onEvent("themeChanged",applyTheme);}
+document.getElementById(inTg?"app":"outside").classList.remove("hide");
+function ls(k,v){
+try{
+if(v===undefined){return localStorage.getItem(k);}
+if(v===null){localStorage.removeItem(k);}
+else{localStorage.setItem(k,v);}
+}catch(e){}
+return null;
+}
+function deviceId(){
+var d=ls("ledger_device");
+if(d&&d.length>=16){return d;}
+var a=new Uint8Array(16);
+crypto.getRandomValues(a);
+d="dev-";
+for(var i=0;i<a.length;i++){d+=("0"+a[i].toString(16)).slice(-2);}
+ls("ledger_device",d);
+return d;
+}
+async function callFn(names,body){
+var r=null;
+for(var i=0;i<names.length;i++){
+r=await fetch(FN+names[i],{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+if(r.status!==404){break;}
+}
+var j={};
+try{j=await r.json();}catch(e){}
+return {status:r.status,data:j};
+}
+function errText(s,d){
+var e=d&&d.error;
+if(e==="invalid_credentials"){return "اسم المستخدم أو كلمة السر غير صحيحة";}
+if(e==="locked"){
+var m=Math.ceil((d.retry_after_seconds||900)/60);
+return "تم قفل الدخول مؤقتاً. حاول بعد "+m+" دقيقة";
+}
+if(e==="account_inactive"){return "الحساب موقوف أو منتهي. تواصل مع المسؤول";}
+if(e==="device_limit"){return "وصلت للحد الأقصى من الأجهزة. تواصل مع المسؤول لمسح أجهزتك";}
+return "حدث خطأ غير متوقع ("+s+")";
+}
+function inviteErr(s,d){
+var e=d&&d.error;
+if(e==="invalid_invite"){return "رمز الدعوة غير صالح أو منتهي أو مستخدم";}
+if(e==="bad_username"){return "اسم المستخدم غير صالح";}
+if(e==="bad_password"){return "كلمة السر غير مقبولة (من 8 إلى 72 خانة)";}
+if(e==="username_taken"){return "اسم المستخدم مأخوذ، اختر اسماً آخر";}
+if(e==="failed"){return "تعذّر إنشاء الحساب، حاول مرة أخرى";}
+return "حدث خطأ غير متوقع ("+s+")";
+}
+function saveSession(d){
+ls("ledger_session",JSON.stringify({u:d.username,role:d.role,s:d.session}));
+ls("ledger_active",String(Date.now()));
+}
+function clearSession(){
+ls("ledger_session",null);
+ls("ledger_active",null);
+data=null;
+}
+function getSession(){
+var t=ls("ledger_active");
+var s=ls("ledger_session");
+if(!t||!s){return null;}
+if(Date.now()-Number(t)>IDLE_MS){clearSession();return null;}
+try{return JSON.parse(s);}catch(e){clearSession();return null;}
+}
+function expSec(s){
+var e=Number(s&&s.expires_at)||0;
+if(e>1000000000000){e=Math.floor(e/1000);}
+return e;
+}
+function refreshNow(sess){
+if(refreshing){return refreshing;}
+refreshing=(async function(){
+try{
+var r=await fetch(SB+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{"Content-Type":"application/json","apikey":ANON},body:JSON.stringify({refresh_token:sess.s.refresh_token})});
+var j={};
+try{j=await r.json();}catch(e){}
+if(r.status===200&&j.access_token&&j.refresh_token){
+var ns={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||(Math.floor(Date.now()/1000)+(j.expires_in||3600))};
+sess.s=ns;
+ls("ledger_session",JSON.stringify(sess));
+return {state:"ok",sess:sess};
+}
+if(r.status===400||r.status===401||r.status===403){return {state:"invalid"};}
+return {state:"error"};
+}catch(e){
+return {state:"error"};
+}finally{
+refreshing=null;
+}
+})();
+return refreshing;
+}
+async function getToken(){
+var sess=getSession();
+if(!sess||!sess.s||!sess.s.refresh_token){return {state:"none"};}
+if(expSec(sess.s)-Math.floor(Date.now()/1000)>60){return {state:"ok",sess:sess};}
+return refreshNow(sess);
+}
+function updateExp(warn){
+var el=document.getElementById("h-exp");
+var s=getSession();
+if(!s||!s.s){el.textContent="";return;}
+var t=new Date(expSec(s.s)*1000).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+el.textContent=warn?("تعذّر تجديد الجلسة الآن. المفتاح الحالي ينتهي "+t):("المفتاح الحالي ينتهي الساعة "+t);
+}
+async function fetchTable(t,token){
+var all=[];
+var from=0;
+while(true){
+var r=await fetch(SB+"/rest/v1/"+t+"?select=doc&deleted_at=is.null&order=id.asc",{headers:{"apikey":ANON,"Authorization":"Bearer "+token,"Range-Unit":"items","Range":from+"-"+(from+999)}});
+if(r.status!==200&&r.status!==206){throw new Error(t+" "+r.status);}
+var j=await r.json();
+for(var i=0;i<j.length;i++){all.push(j[i].doc);}
+if(j.length<1000){break;}
+from+=1000;
+}
+return all;
+}
+function sortRecs(a,k){
+a.sort(function(x,y){
+var kx,ky;
+if(k==="cashiers"){
+kx=String(x.createdAt||"");
+ky=String(y.createdAt||"");
+}else{
+kx=String(x.date||"")+" "+String(x.time||"");
+ky=String(y.date||"")+" "+String(y.time||"");
+}
+if(kx<ky){return -1;}
+if(kx>ky){return 1;}
+return String(x.id)<String(y.id)?-1:1;
+});
+}
+async function loadData(){
+if(loadingData){return;}
+loadingData=true;
+var body=document.getElementById("h-body");
+if(!data){body.innerHTML='<p class="empty">جارٍ تحميل البيانات...</p>';}
+try{
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){loadingData=false;sessionExpired();return;}
+if(r.state!=="ok"){
+if(!data){body.innerHTML='<p class="empty">تعذّر الاتصال. اضغط تحديث.</p>';}
+loadingData=false;
+return;
+}
+var tok=r.sess.s.access_token;
+var d={};
+for(var i=0;i<TBL.length;i++){
+var rows=await fetchTable(TBL[i][1],tok);
+sortRecs(rows,TBL[i][0]);
+d[TBL[i][0]]=rows;
+}
+var sr=await fetch(SB+"/rest/v1/settings?select=doc",{headers:{"apikey":ANON,"Authorization":"Bearer "+tok}});
+if(sr.status!==200){throw new Error("settings "+sr.status);}
+var sj=await sr.json();
+var sd=(sj.length&&sj[0].doc)?sj[0].doc:{};
+d.lockedMonths=sd.lockedMonths||[];
+d.openingBalances=sd.openingBalances||null;
+d.feeCompensations=sd.feeCompensations||[];
+d.log=[];
+data=d;
+body.innerHTML=homeHTML();
+renderCash();
+updateExp(false);
+}catch(e){
+if(!data){body.innerHTML='<p class="empty">تعذّر تحميل البيانات ('+esc(e&&e.message?e.message:"خطأ")+'). اضغط تحديث.</p>';}
+else{toast("تعذّر التحديث");}
+}
+loadingData=false;
+}
+function show(id){
+["v-login","v-invite","v-rcode","v-recover","v-home","v-cash","v-addcash","v-open","v-check","v-cashier"].forEach(function(v){document.getElementById(v).classList.add("hide");});
+document.getElementById(id).classList.remove("hide");
+var navIdx={"v-home":0,"v-cash":2,"v-cashier":2,"v-check":3};
+document.body.classList.toggle("is-home",id==="v-home"||id==="v-cash"||id==="v-addcash"||id==="v-open"||id==="v-check"||id==="v-cashier");
+var nv=document.getElementById("nav");
+var bs=nv.getElementsByTagName("button");
+for(var i=0;i<bs.length;i++){bs[i].className=(navIdx[id]===i)?"on":"";}
+nv.classList.toggle("hide",navIdx[id]===undefined);
+window.scrollTo(0,0);
+}
+function showHome(s,warn){
+document.getElementById("h-hi").textContent="مرحباً، "+s.u;
+document.getElementById("h-role").textContent=s.role==="admin"?"مسؤول":"مستخدم";
+ls("ledger_active",String(Date.now()));
+updateExp(warn);
+show("v-home");
+if(data){document.getElementById("h-body").innerHTML=homeHTML();}
+loadData();
+}
+function doLogout(){
+clearSession();
+document.getElementById("h-body").innerHTML='<p class="empty">جارٍ تحميل البيانات...</p>';
+show("v-login");
+}
+function eye(id,b){
+var i=document.getElementById(id);
+if(i.type==="password"){i.type="text";b.textContent="إخفاء";}
+else{i.type="password";b.textContent="إظهار";}
+}
+function msg(id,t,ok){
+var m=document.getElementById(id);
+m.textContent=t;
+m.className=ok?"msg ok":"msg";
+}
+function val(id){return document.getElementById(id).value.trim();}
+async function doLogin(){
+var u=val("l-user").toLowerCase();
+var p=document.getElementById("l-pass").value;
+if(!u||!p){msg("l-msg","أدخل اسم المستخدم وكلمة السر");return;}
+var b=document.getElementById("l-btn");
+b.disabled=true;
+msg("l-msg","جارٍ التحقق...",true);
+try{
+var r=await callFn(["Login","login"],{username:u,password:p,device_id:deviceId()});
+var d=r.data||{};
+if(r.status===200&&d.ok&&d.session){
+saveSession(d);
+document.getElementById("l-pass").value="";
+msg("l-msg","");
+showHome({u:d.username,role:d.role});
+}else{
+msg("l-msg",errText(r.status,d));
+}
+}catch(e){
+msg("l-msg","تعذّر الاتصال بالخادم. تحقق من الإنترنت وحاول مرة أخرى.");
+}
+b.disabled=false;
+}
+async function doInvite(){
+var c=val("i-code");
+var u=val("i-user").toLowerCase();
+var p=document.getElementById("i-pass").value;
+var p2=document.getElementById("i-pass2").value;
+if(!c){msg("i-msg","أدخل رمز الدعوة");return;}
+if(!/^[a-z0-9_]{3,20}$/.test(u)){msg("i-msg","اسم المستخدم غير صالح");return;}
+if(p.length<8||p.length>72){msg("i-msg","كلمة السر من 8 إلى 72 خانة");return;}
+if(p!==p2){msg("i-msg","كلمتا السر غير متطابقتين");return;}
+var b=document.getElementById("i-btn");
+b.disabled=true;
+msg("i-msg","جارٍ إنشاء الحساب...",true);
+try{
+var r=await callFn(["redeem-invite"],{code:c,username:u,password:p});
+var d=r.data||{};
+if(r.status===200&&d.ok&&d.recovery_code){
+pend={u:u,p:p};
+document.getElementById("rc-code").textContent=d.recovery_code;
+document.getElementById("rc-chk").checked=false;
+document.getElementById("rc-btn").disabled=true;
+msg("rc-msg","");
+["i-code","i-user","i-pass","i-pass2"].forEach(function(id){document.getElementById(id).value="";});
+msg("i-msg","");
+show("v-rcode");
+}else{
+msg("i-msg",inviteErr(r.status,d));
+}
+}catch(e){
+msg("i-msg","تعذّر الاتصال بالخادم. تحقق من الإنترنت وحاول مرة أخرى.");
+}
+b.disabled=false;
+}
+function fallbackCopy(t,done){
+var ok=false;
+try{
+var a=document.createElement("textarea");
+a.value=t;
+a.style.position="fixed";
+a.style.opacity="0";
+document.body.appendChild(a);
+a.select();
+ok=document.execCommand("copy");
+document.body.removeChild(a);
+}catch(e){}
+done(ok);
+}
+function copyCode(){
+var t=document.getElementById("rc-code").textContent;
+function done(ok){msg("rc-msg",ok?"تم النسخ":"تعذّر النسخ. اضغط مطولاً على الرمز لنسخه يدوياً",ok);}
+if(navigator.clipboard&&navigator.clipboard.writeText){
+navigator.clipboard.writeText(t).then(function(){done(true);},function(){fallbackCopy(t,done);});
+}else{
+fallbackCopy(t,done);
+}
+}
+function onChk(){
+document.getElementById("rc-btn").disabled=!document.getElementById("rc-chk").checked;
+}
+async function finishInvite(){
+if(!pend){show("v-login");return;}
+var b=document.getElementById("rc-btn");
+b.disabled=true;
+msg("rc-msg","جارٍ الدخول...",true);
+try{
+var r=await callFn(["Login","login"],{username:pend.u,password:pend.p,device_id:deviceId()});
+var d=r.data||{};
+pend=null;
+document.getElementById("rc-code").textContent="";
+if(r.status===200&&d.ok&&d.session){
+saveSession(d);
+msg("rc-msg","");
+showHome({u:d.username,role:d.role});
+}else{
+show("v-login");
+msg("l-msg","تم إنشاء حسابك. سجّل الدخول للمتابعة.",true);
+}
+}catch(e){
+msg("rc-msg","تعذّر الاتصال. اضغط متابعة مرة أخرى.");
+b.disabled=false;
+}
+}
+function doRecover(){
+var u=val("r-user");
+var c=val("r-code");
+if(!u||!c){msg("r-msg","أدخل اسم المستخدم ورمز الاسترجاع");return;}
+msg("r-msg","الاسترجاع سيُفعَّل في مرحلة لاحقة.",true);
+}
+function sessionExpired(){
+clearSession();
+show("v-login");
+msg("l-msg","انتهت الجلسة. سجّل الدخول من جديد.");
+}
+async function doBackup(){
+if(!inTg){msg("bk-msg","افتح الدفتر من تلغرام");return;}
+var b=document.getElementById("bk-btn");
+if(b.disabled){return;}
+b.disabled=true;
+b.textContent="جارٍ إرسال النسخة...";
+msg("bk-msg","");
+try{
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){sessionExpired();return;}
+if(r.state!=="ok"){msg("bk-msg","تعذّر الاتصال. حاول مرة أخرى.");return;}
+var names=["Send-backup","send-backup"];
+var res=null;
+for(var i=0;i<names.length;i++){
+try{
+res=await fetch(FN+names[i],{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+r.sess.s.access_token},body:JSON.stringify({init_data:tg.initData})});
+}catch(e){
+res=null;
+continue;
+}
+if(res.status!==404){break;}
+}
+if(!res){msg("bk-msg","تعذّر الاتصال بالخادم. تحقق من الإنترنت وحاول مرة أخرى.");return;}
+var j={};
+try{j=await res.json();}catch(e){}
+if(res.status===200&&j.ok){
+msg("bk-msg","تم إرسال النسخة إلى محادثة البوت ("+(j.counts?j.counts.transactions:"")+" عملية). اسم الملف: "+j.filename,true);
+}else if(j.error==="invalid_session"){
+sessionExpired();
+}else if(j.error==="bad_init_data"){
+msg("bk-msg","تعذّر التحقق من تلغرام. أغلق الدفتر وافتحه من جديد ثم حاول.");
+}else if(j.error==="telegram_failed"){
+msg("bk-msg","تعذّر إرسال الملف من تلغرام: "+(j.detail||""));
+}else{
+msg("bk-msg","حدث خطأ ("+res.status+"). حاول مرة أخرى.");
+}
+}catch(e){
+msg("bk-msg","تعذّر الاتصال بالخادم. تحقق من الإنترنت وحاول مرة أخرى.");
+}finally{
+b.disabled=false;
+b.textContent="نسخة احتياطية";
+}
+}
+async function startup(){
+var sess=getSession();
+if(!sess||!inTg){return;}
+document.getElementById("v-login").classList.add("hide");
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){sessionExpired();return;}
+if(r.state==="ok"){showHome(r.sess);return;}
+showHome(sess,true);
+}
+startup();
+document.addEventListener("visibilitychange",async function(){
+if(document.hidden||!inTg){return;}
+if(document.getElementById("v-home").classList.contains("hide")){return;}
+var r=await getToken();
+if(r.state==="invalid"||r.state==="none"){sessionExpired();return;}
+updateExp(r.state==="error");
+});
+</script>
+</body>
+</html>
