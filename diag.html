@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>فحص الاتصال</title>
+<style>
+body{font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;margin:0;padding:16px;background:#eef3fa;color:#12233a}
+h1{font-size:20px;margin:0 0 6px}
+p.s{margin:0 0 14px;color:#566b87;font-size:13px;line-height:1.7}
+button{width:100%;height:48px;border:0;border-radius:14px;background:#1f7ac0;color:#fff;font-size:16px;font-weight:700;margin-bottom:14px}
+button:disabled{opacity:.6}
+.r{background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.r b{font-size:14px}
+.r small{display:block;color:#566b87;font-size:12px;margin-top:3px}
+.ok{color:#1b8a4b;font-weight:700;white-space:nowrap}
+.bad{color:#d03a30;font-weight:700;white-space:nowrap}
+.wt{color:#b7791f;font-weight:700;white-space:nowrap}
+#v{background:#fff;border-radius:14px;padding:14px;margin-top:10px;font-size:14px;line-height:1.9;display:none}
+</style>
+</head>
+<body>
+<h1>🔍 فحص الاتصال بدون VPN</h1>
+<p class="s">أطفئ الـ VPN وأي بروكسي، ثم افتح هذه الصفحة (يفضّل من داخل البوت، ثم مرة أخرى من المتصفح) واضغط «ابدأ الفحص». كل بند له مهلة 8 ثوانٍ.</p>
+<button id="go" onclick="run()">ابدأ الفحص</button>
+<div id="out"></div>
+<div id="v"></div>
+<script>
+var SB="https://zxqrmaeikptepwnwfjnx.supabase.co";
+var out=document.getElementById("out");
+var R={};
+function row(id,title,sub){
+var d=document.createElement("div");d.className="r";d.id="r-"+id;
+d.innerHTML='<div><b>'+title+'</b><small>'+sub+'</small></div><span class="wt">…</span>';
+out.appendChild(d);
+}
+function set(id,cls,txt,extra){
+var d=document.getElementById("r-"+id);
+d.querySelector("span").className=cls;
+d.querySelector("span").textContent=txt;
+if(extra){d.querySelector("small").textContent=extra;}
+}
+function timed(url,ms,cors){
+var t0=performance.now(),ac=new AbortController(),tm=setTimeout(function(){ac.abort();},ms||8000);
+return fetch(url,{mode:cors?"cors":"no-cors",cache:"no-store",signal:ac.signal}).then(function(r){
+clearTimeout(tm);return {ok:true,ms:Math.round(performance.now()-t0),r:r};
+}).catch(function(e){
+clearTimeout(tm);return {ok:false,ms:Math.round(performance.now()-t0),err:(e&&e.name==="AbortError")?"انتهت المهلة":"فشل الاتصال"};
+});
+}
+function loadScript(url,ms){
+return new Promise(function(res){
+var t0=performance.now(),s=document.createElement("script"),done=false;
+function fin(ok,err){if(done){return;}done=true;clearTimeout(tm);res({ok:ok,ms:Math.round(performance.now()-t0),err:err});}
+var tm=setTimeout(function(){fin(false,"انتهت المهلة");},ms||8000);
+s.onload=function(){fin(true);};
+s.onerror=function(){fin(false,"فشل التحميل");};
+s.src=url+"?diag="+Date.now();
+document.head.appendChild(s);
+});
+}
+async function run(){
+var b=document.getElementById("go");b.disabled=true;b.textContent="جارٍ الفحص...";
+out.innerHTML="";document.getElementById("v").style.display="none";R={};
+row("page","1) صفحة الدفتر (GitHub Pages)","إن ظهرت لك هذه الصفحة فالاستضافة تعمل");
+set("page","ok","✅ تعمل",location.host+" — فُتحت خلال "+Math.round(performance.now())+" ms");R.page=true;
+row("tgs","2) سكربت تلغرام (telegram.org)","يحتاجه الدفتر ليتعرف عليك داخل البوت");
+var a=await loadScript("https://telegram.org/js/telegram-web-app.js");
+R.tgs=a.ok;set("tgs",a.ok?"ok":"bad",a.ok?"✅ "+a.ms+" ms":"❌ "+a.err);
+row("tgin","3) هل الصفحة مفتوحة من داخل البوت؟","Telegram.WebApp.initData");
+var inTg=!!(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData);
+set("tgin",inTg?"ok":"wt",inTg?"✅ نعم":"⚠️ لا (متصفح)",inTg?"الفحص يمثل ما يحدث داخل البوت فعلاً":"افتحها أيضاً من داخل البوت لأن شبكته قد تختلف عن المتصفح");
+row("sb","4) خادم Supabase (البيانات والدخول)","5 محاولات متتالية لقياس زمن الرد");
+var times=[],fails=0,k;
+for(k=0;k<5;k++){var x=await timed(SB+"/functions/v1/login?ping="+k,8000,false);if(x.ok){times.push(x.ms);}else{fails++;}}
+if(!times.length){R.sb=false;set("sb","bad","❌ لا يفتح","كل المحاولات فشلت");}
+else{
+times.sort(function(p,q){return p-q;});
+var med=times[Math.floor(times.length/2)];R.sb=true;R.med=med;R.fails=fails;
+set("sb",med>1200?"wt":"ok",(med>1200?"⚠️ بطيء ":"✅ ")+med+" ms","الوسيط من "+times.length+" محاولات"+(fails?" — فشلت "+fails:""));
+}
+row("fn","5) دالة الدخول login","تأكد أن الخادم يرد فعلاً وليس فقط يفتح");
+var f=await timed(SB+"/functions/v1/login",8000,true);
+if(f.ok){try{var j=await f.r.json();set("fn",j&&j.ok?"ok":"wt",j&&j.ok?"✅ تعمل":"⚠️ ردّت بشيء غير متوقع","fn: "+(j&&j.fn||"?"));R.fn=true;}catch(e){set("fn","wt","⚠️ رد غير مفهوم");}}
+else{set("fn","wt","⚠️ لم أستطع قراءة الرد",f.err+" (قد يكون سببه CORS لا الحظر، والبند 4 هو الأهم)");}
+row("gf","6) خطوط Google (الخط فقط)","لو فشلت لا تتعطل الأرقام، يتغير شكل الخط");
+var g=await timed("https://fonts.googleapis.com/css2?family=Cairo&display=swap",8000,false);
+R.gf=g.ok;set("gf",g.ok?"ok":"wt",g.ok?"✅ "+g.ms+" ms":"⚠️ "+g.err);
+var v=document.getElementById("v");v.style.display="block";
+var t=[];
+if(R.sb&&R.tgs){t.push("✅ كل ما يحتاجه الدفتر للعمل وصل بدون VPN.");}
+if(!R.sb){t.push("❌ <b>Supabase لا يفتح</b> من شبكتك الحالية: هذا هو سبب احتياج الدفتر لـ VPN، والحل جسر (بروكسي) أمام الخادم. أخبرني بالنتيجة لنبنيه.");}
+if(!R.tgs){t.push("❌ <b>سكربت تلغرام محجوب</b> من متصفح الهاتف: هذا يعطّل الدفتر قبل أن يبدأ. الحل أن نحمّله من استضافتك نفسها.");}
+if(R.sb&&R.med>1200){t.push("⚠️ الخادم يفتح لكنه بطيء ("+R.med+" ms للطلب الواحد). الدفتر القديم كان يرسل 8 طلبات متتالية عند كل تحميل (أي نحو "+(Math.round(R.med*8/100)/10)+" ثانية)، وقد صارت متوازية في النسخة الجديدة.");}
+if(R.sb&&R.med<=1200){t.push("زمن الطلب الواحد "+R.med+" ms. الدفتر القديم يرسل 8 طلبات متتالية، أي نحو "+(Math.round(R.med*8/100)/10)+" ثانية للتحميل الواحد، وصارت الآن متوازية.");}
+if(R.fails){t.push("⚠️ فشلت "+R.fails+" من 5 محاولات: الاتصال غير مستقر.");}
+if(!inTg){t.push("ℹ️ هذا الفحص من المتصفح. كرّره من داخل البوت لأن شبكة نافذة تلغرام قد تختلف.");}
+v.innerHTML=t.join("<br>");
+b.disabled=false;b.textContent="إعادة الفحص";
+}
+</script>
+</body>
+</html>
